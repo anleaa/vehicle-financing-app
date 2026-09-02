@@ -1,0 +1,10 @@
+# Archivos ignorados por Git
+node_modules/
+.DS_Store
+*.log
+.env
+.env.local
+dist/
+build/
+.idea/
+.vscode/
