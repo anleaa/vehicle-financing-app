@@ -1,39 +1,41 @@
 /* ==========================================================================
    SISTEMA DE GESTIÓN DE FINANCIAMIENTO DE VEHÍCULOS A CRÉDITO
-   Estilos CSS Mobile-First optimizados para Teléfonos Inteligentes
+   Estilo Visual: Modo Claro (Estética Claro High-Contrast)
+   Optimizado para Pantallas de Teléfonos Inteligentes (Mobile-First UI)
    ========================================================================== */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap');
 
 :root {
-  /* Paleta Contable de Finanzas */
-  --bg-primary: #0a0e17;
-  --bg-card: #121826;
-  --bg-card-hover: #1a2235;
-  --bg-input: #1a2336;
-  --border-color: #243047;
-  --border-focus: #3b82f6;
+  /* Paleta en Modo Claro (Estética Claro) */
+  --bg-primary: #f8fafc;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f1f5f9;
+  --bg-input: #ffffff;
+  --border-color: #e2e8f0;
+  --border-focus: #2563eb;
 
-  /* Textos */
-  --text-main: #f1f5f9;
-  --text-muted: #94a3b8;
+  /* Textos de Alta Legibilidad */
+  --text-main: #0f172a;
+  --text-muted: #475569;
   --text-dim: #64748b;
   --font-family: 'Inter', system-ui, -apple-system, sans-serif;
   --font-heading: 'Outfit', system-ui, -apple-system, sans-serif;
 
-  /* Estados de Crédito / Semanas */
-  --status-paid: #10b981;        /* 🟢 Pagada */
-  --status-paid-bg: rgba(16, 185, 129, 0.15);
-  --status-pending: #f59e0b;     /* 🟡 Pendiente */
-  --status-pending-bg: rgba(245, 158, 11, 0.15);
-  --status-pause: #3b82f6;       /* 🔵 Pausa / Semana Libre */
-  --status-pause-bg: rgba(59, 130, 246, 0.15);
-  --status-overdue: #ef4444;     /* 🔴 En Mora */
-  --status-overdue-bg: rgba(239, 68, 68, 0.15);
+  /* Estados de Crédito / Semanas en Modo Claro */
+  --status-paid: #059669;        /* 🟢 Pagada (Esmeralda) */
+  --status-paid-bg: #ecfdf5;
+  --status-pending: #d97706;     /* 🟡 Pendiente (Ámbar) */
+  --status-pending-bg: #fffbeb;
+  --status-pause: #2563eb;       /* 🔵 Pausa / Semana Libre (Azul) */
+  --status-pause-bg: #eff6ff;
+  --status-overdue: #dc2626;     /* 🔴 En Mora (Rojo) */
+  --status-overdue-bg: #fef2f2;
 
-  /* Sombras y Bordes */
-  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.2);
-  --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+  /* Sombras y Bordes Suaves */
+  --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 4px 16px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 12px 30px rgba(15, 23, 42, 0.12);
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
@@ -54,13 +56,13 @@ body {
   font-size: 15px;
   line-height: 1.5;
   min-height: 100vh;
-  padding-bottom: 85px; /* Espacio para barra de navegación inferior móvil */
+  padding-bottom: 90px; /* Espacio para la barra inferior fija */
 }
 
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-heading);
-  color: #ffffff;
-  font-weight: 600;
+  color: var(--text-main);
+  font-weight: 700;
   line-height: 1.2;
 }
 
@@ -95,14 +97,15 @@ h1, h2, h3, h4, h5, h6 {
   align-items: center;
   gap: 10px;
   font-size: 1.2rem;
-  color: #3b82f6;
+  color: #2563eb;
 }
 
-.brand-title svg {
-  color: #3b82f6;
+.brand-title h2 {
+  color: #1e3a8a;
+  font-size: 1.25rem;
 }
 
-/* Buscador por Placas en Tiempo Real */
+/* Buscador por Placas */
 .search-container {
   position: relative;
   width: 100%;
@@ -138,7 +141,7 @@ h1, h2, h3, h4, h5, h6 {
 .search-input:focus {
   outline: none;
   border-color: var(--border-focus);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 
 .search-results-dropdown {
@@ -178,14 +181,14 @@ h1, h2, h3, h4, h5, h6 {
   border: 1px solid #3b82f6;
 }
 
-/* BARRA DE PROGRESO DE FINANCIAMIENTO DEL VEHÍCULO */
+/* TARJETA DE PROGRESO DE PAGOS (MODO CLARO) */
 .progress-card {
-  background: linear-gradient(145deg, #121826 0%, #1a2336 100%);
+  background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   padding: 18px;
-  margin-bottom: 20px;
-  box-shadow: var(--shadow-sm);
+  margin-bottom: 18px;
+  box-shadow: var(--shadow-md);
 }
 
 .progress-header {
@@ -197,18 +200,18 @@ h1, h2, h3, h4, h5, h6 {
 
 .progress-bar-container {
   width: 100%;
-  height: 18px;
-  background: #0f172a;
+  height: 20px;
+  background: #e2e8f0;
   border-radius: 10px;
   overflow: hidden;
-  border: 1px solid var(--border-color);
+  border: 1px solid #cbd5e1;
   margin-bottom: 16px;
   position: relative;
 }
 
 .progress-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, #2563eb 0%, #10b981 100%);
+  background: linear-gradient(90deg, #2563eb 0%, #059669 100%);
   border-radius: 10px;
   transition: width 0.4s ease;
 }
@@ -220,8 +223,8 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .progress-stat-box {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
   border-radius: var(--radius-sm);
   padding: 10px;
   text-align: center;
@@ -233,28 +236,113 @@ h1, h2, h3, h4, h5, h6 {
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 2px;
+  font-weight: 600;
 }
 
 .progress-stat-value {
   font-size: 1.1rem;
-  font-weight: 700;
+  font-weight: 800;
 }
 
-/* FICHA Y BOTONES DE ACCIÓN RÁPIDA DE VEHÍCULO */
-.vehicle-action-buttons {
+/* ESTRUCTURA ORGANIZADA DE BOTONES DE ACCIÓN (NUEVA ORGANIZACIÓN) */
+.action-buttons-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.primary-action-row {
+  width: 100%;
+}
+
+.secondary-actions-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
-  margin-top: 14px;
+}
+
+.danger-action-row {
+  width: 100%;
 }
 
 @media (min-width: 640px) {
-  .vehicle-action-buttons {
-    grid-template-columns: repeat(4, 1fr);
+  .action-buttons-wrapper {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    align-items: center;
+  }
+  .secondary-actions-grid {
+    display: contents;
   }
 }
 
-/* MATRIZ DE CONTROL DE SEMANAS (VISTA TARJETAS MÓVILES) */
+/* SISTEMA DE BOTONES ELEGANTES Y ERGONÓMICOS */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 48px;
+  padding: 0 18px;
+  border-radius: var(--radius-md);
+  font-size: 0.95rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 100%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.btn-success {
+  background: #059669;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25);
+}
+.btn-success:hover { background: #047857; }
+
+.btn-primary {
+  background: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+.btn-primary:hover { background: #1d4ed8; }
+
+.btn-warning {
+  background: #d97706;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.25);
+}
+.btn-warning:hover { background: #b45309; }
+
+.btn-secondary {
+  background: #e2e8f0;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+}
+.btn-secondary:hover { background: #cbd5e1; }
+
+.btn-danger-outline {
+  background: #ffffff;
+  color: #dc2626;
+  border: 1px solid #fca5a5;
+}
+.btn-danger-outline:hover {
+  background: #fef2f2;
+}
+
+.btn-danger {
+  background: #dc2626;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
+}
+
+/* MATRIZ DE SEMANAS (VISTA TARJETAS MÓVILES) */
 .weeks-cards-mobile {
   display: flex;
   flex-direction: column;
@@ -266,38 +354,43 @@ h1, h2, h3, h4, h5, h6 {
   border: 1px solid var(--border-color);
   border-left: 5px solid var(--border-color);
   border-radius: var(--radius-md);
-  padding: 14px;
+  padding: 14px 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   cursor: pointer;
-  transition: transform 0.15s ease;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.week-card-item:hover {
+  box-shadow: var(--shadow-md);
 }
 
 .week-card-item:active {
   transform: scale(0.98);
 }
 
-.week-card-item.status-PAGADA { border-left-color: var(--status-paid); }
-.week-card-item.status-PENDIENTE { border-left-color: var(--status-pending); }
-.week-card-item.status-PAUSA { border-left-color: var(--status-pause); }
-.week-card-item.status-EN_MORA { border-left-color: var(--status-overdue); }
+.week-card-item.status-PAGADA { border-left-color: var(--status-paid); background: #f0fdf4; }
+.week-card-item.status-PENDIENTE { border-left-color: var(--status-pending); background: #fffbeb; }
+.week-card-item.status-PAUSA { border-left-color: var(--status-pause); background: #eff6ff; }
+.week-card-item.status-EN_MORA { border-left-color: var(--status-overdue); background: #fef2f2; }
 
 .status-badge-pill {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 4px 10px;
-  border-radius: 12px;
+  padding: 5px 12px;
+  border-radius: 20px;
   font-size: 0.78rem;
-  font-weight: 700;
+  font-weight: 800;
   text-transform: uppercase;
 }
 
-.badge-PAGADA { background: var(--status-paid-bg); color: var(--status-paid); }
-.badge-PENDIENTE { background: var(--status-pending-bg); color: var(--status-pending); }
-.badge-PAUSA { background: var(--status-pause-bg); color: var(--status-pause); }
-.badge-EN_MORA { background: var(--status-overdue-bg); color: var(--status-overdue); }
+.badge-PAGADA { background: var(--status-paid-bg); color: var(--status-paid); border: 1px solid #a7f3d0; }
+.badge-PENDIENTE { background: var(--status-pending-bg); color: var(--status-pending); border: 1px solid #fde68a; }
+.badge-PAUSA { background: var(--status-pause-bg); color: var(--status-pause); border: 1px solid #bfdbfe; }
+.badge-EN_MORA { background: var(--status-overdue-bg); color: var(--status-overdue); border: 1px solid #fecaca; }
 
 /* BARRA DE NAVEGACIÓN INFERIOR MÓVIL (STICKY BOTTOM BAR) */
 .bottom-nav {
@@ -305,69 +398,46 @@ h1, h2, h3, h4, h5, h6 {
   bottom: 0;
   left: 0;
   right: 0;
-  background: #0f172a;
-  border-top: 1px solid var(--border-color);
+  background: #ffffff;
+  border-top: 1px solid #e2e8f0;
   display: flex;
   justify-content: space-around;
-  padding: 8px 0;
+  padding: 8px 0 10px 0;
   z-index: 900;
-  box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.06);
 }
 
 .nav-item {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 3px;
   color: var(--text-muted);
   background: none;
   border: none;
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   cursor: pointer;
-  width: 20%;
+  width: 22%;
+  padding: 6px 0;
+  border-radius: 12px;
   font-family: var(--font-family);
-  font-weight: 500;
+  font-weight: 600;
+  transition: all 0.2s ease;
 }
 
 .nav-item.active {
-  color: #3b82f6;
-  font-weight: 700;
+  color: #2563eb;
+  background: rgba(37, 99, 235, 0.08);
+  font-weight: 800;
 }
 
 .nav-item svg {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
 }
 
-/* BOTONES Y FORMULARIOS */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  height: 46px;
-  padding: 0 16px;
-  border-radius: var(--radius-sm);
-  font-size: 0.92rem;
-  font-weight: 600;
-  border: none;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  width: 100%;
-}
-
-.btn-primary { background: #2563eb; color: #ffffff; }
-.btn-primary:active { background: #1d4ed8; }
-
-.btn-success { background: #059669; color: #ffffff; }
-.btn-success:active { background: #047857; }
-
-.btn-secondary { background: #334155; color: #f8fafc; }
-.btn-secondary:hover { background: #475569; }
-
-.btn-danger { background: #dc2626; color: #ffffff; }
-.btn-warning { background: #d97706; color: #ffffff; }
-
+/* FORMULARIOS Y ELEMENTOS DE ENTRADA */
 .form-group {
   margin-bottom: 14px;
 }
@@ -376,35 +446,37 @@ h1, h2, h3, h4, h5, h6 {
   display: block;
   font-size: 0.85rem;
   color: var(--text-muted);
-  margin-bottom: 5px;
-  font-weight: 500;
+  margin-bottom: 6px;
+  font-weight: 600;
 }
 
 .form-control {
   width: 100%;
-  height: 46px;
+  height: 48px;
   padding: 10px 14px;
   background: var(--bg-input);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border-color);
+  border-radius: var(--radius-md);
   color: var(--text-main);
   font-size: 0.95rem;
+  font-weight: 500;
 }
 
 .form-control:focus {
   outline: none;
   border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 
-/* MODALES */
+/* MODALES Y CAPAS SUPERPUESTAS */
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(4px);
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(6px);
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -427,7 +499,8 @@ h1, h2, h3, h4, h5, h6 {
   overflow-y: auto;
   border-top-left-radius: var(--radius-xl);
   border-top-right-radius: var(--radius-xl);
-  padding: 20px;
+  padding: 24px;
+  box-shadow: var(--shadow-lg);
   animation: slideUp 0.25s ease-out;
 }
 
@@ -447,7 +520,7 @@ h1, h2, h3, h4, h5, h6 {
   justify-content: space-between;
   align-items: center;
   padding-bottom: 12px;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
   border-bottom: 1px solid var(--border-color);
 }
 
@@ -455,11 +528,12 @@ h1, h2, h3, h4, h5, h6 {
   background: transparent;
   border: none;
   color: var(--text-muted);
-  font-size: 1.5rem;
+  font-size: 1.6rem;
   cursor: pointer;
+  line-height: 1;
 }
 
-/* RECIBO / COMPROBANTE PARA IMPRESIÓN PDF CON FIRMAS */
+/* RECIBO DE IMPRESIÓN PDF */
 .receipt-printable {
   background: #ffffff;
   color: #0f172a;

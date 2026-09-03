@@ -1,6 +1,6 @@
 /* ==========================================================================
    SISTEMA DE GESTIÓN DE FINANCIAMIENTO DE VEHÍCULOS A CRÉDITO Y CONTROL SEMANAL
-   React 18 Native (Sin compiladores externos - Carga Instantánea Garantizada)
+   React 18 Native - Modo Claro (Estética Claro High-Contrast)
    ========================================================================== */
 
 const { useState, useEffect } = React;
@@ -16,7 +16,7 @@ const OFFICIAL_ADMIN = {
 };
 
 const STORAGE_KEY_DB = 'vehicle_financing_credit_db_v1';
-const STORAGE_KEY_AUTH = 'vehicle_financing_auth_session_v7';
+const STORAGE_KEY_AUTH = 'vehicle_financing_auth_session_v8';
 
 const INITIAL_SEED = {
   contracts: [
@@ -159,7 +159,7 @@ function loadDB() {
   return db;
 }
 
-// 1. PANTALLA DE INICIO DE SESIÓN (LOGIN SCREEN PRINCIPAL)
+// 1. PANTALLA DE INICIO DE SESIÓN (MODO CLARO ELEGANTE)
 function LoginScreen({ onLoginSuccess }) {
   const [username, setUsername] = useState('andres.rebolledo');
   const [password, setPassword] = useState('Andres2026!');
@@ -187,18 +187,18 @@ function LoginScreen({ onLoginSuccess }) {
       alignItems: 'center',
       justifyContent: 'center',
       padding: '16px',
-      background: 'radial-gradient(circle at top, #1e293b 0%, #0a0e17 100%)'
+      background: 'radial-gradient(circle at top, #ffffff 0%, #f1f5f9 100%)'
     }
   }, 
     h('div', {
       style: {
-        background: '#121826',
-        border: '1px solid #243047',
+        background: '#ffffff',
+        border: '1px solid #e2e8f0',
         borderRadius: '24px',
-        padding: '28px 24px',
+        padding: '32px 24px',
         width: '100%',
         maxWidth: '420px',
-        boxShadow: '0 20px 40px rgba(0, 0, 0, 0.6)'
+        boxShadow: '0 20px 40px rgba(15, 23, 42, 0.08)'
       }
     }, [
       h('div', { key: 'header', style: { textAlign: 'center', marginBottom: '24px' } }, [
@@ -211,20 +211,20 @@ function LoginScreen({ onLoginSuccess }) {
             width: '64px',
             height: '64px',
             borderRadius: '50%',
-            background: 'rgba(59, 130, 246, 0.15)',
-            border: '2px solid #3b82f6',
-            color: '#3b82f6',
+            background: 'rgba(37, 99, 235, 0.1)',
+            border: '2px solid #2563eb',
+            color: '#2563eb',
             marginBottom: '12px',
             fontSize: '1.8rem'
           }
         }, '🛡️'),
-        h('h2', { key: 'title', style: { fontSize: '1.4rem', fontWeight: '700', color: '#ffffff' } }, 'Control Financiamiento Auto'),
-        h('p', { key: 'sub', style: { fontSize: '0.85rem', color: '#94a3b8', marginTop: '4px' } }, 'Inicio de Sesión Administrador')
+        h('h2', { key: 'title', style: { fontSize: '1.45rem', fontWeight: '800', color: '#0f172a' } }, 'Control Financiamiento Auto'),
+        h('p', { key: 'sub', style: { fontSize: '0.88rem', color: '#64748b', marginTop: '4px' } }, 'Inicio de Sesión Administrador')
       ]),
 
       errorMsg ? h('div', {
         key: 'err',
-        style: { background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', padding: '10px', borderRadius: '8px', fontSize: '0.85rem', marginBottom: '16px', textAlign: 'center', border: '1px solid rgba(239, 68, 68, 0.3)' }
+        style: { background: '#fef2f2', color: '#dc2626', padding: '10px', borderRadius: '8px', fontSize: '0.85rem', marginBottom: '16px', textAlign: 'center', border: '1px solid #fecaca' }
       }, errorMsg) : null,
 
       h('form', { key: 'form', onSubmit: handleSubmit }, [
@@ -250,29 +250,30 @@ function LoginScreen({ onLoginSuccess }) {
             required: true
           })
         ]),
-        h('button', { key: 'submit-btn', type: 'submit', className: 'btn btn-primary', style: { marginTop: '12px', fontSize: '1rem' } }, '🔑 Ingresar al Sistema')
+        h('button', { key: 'submit-btn', type: 'submit', className: 'btn btn-primary', style: { marginTop: '12px', fontSize: '1rem', height: '50px' } }, '🔑 Ingresar al Sistema')
       ]),
 
       h('div', {
         key: 'quick-card',
         style: {
-          marginTop: '20px',
-          padding: '14px',
-          background: 'rgba(255, 255, 255, 0.03)',
-          border: '1px dashed #243047',
-          borderRadius: '12px',
+          marginTop: '22px',
+          padding: '16px',
+          background: 'rgba(37, 99, 235, 0.04)',
+          border: '1px dashed #bfdbfe',
+          borderRadius: '16px',
           textAlign: 'center'
         }
       }, [
-        h('div', { key: 'q-lbl', style: { fontSize: '0.8rem', color: '#94a3b8' } }, 'CUENTA OFICIAL DE ADMINISTRADOR'),
-        h('strong', { key: 'q-name', style: { fontSize: '0.95rem', color: '#60a5fa', display: 'block', marginTop: '2px' } }, `👤 ${OFFICIAL_ADMIN.name}`),
-        h('div', { key: 'q-creds', style: { fontSize: '0.78rem', color: '#64748b', marginTop: '4px' } }, [
-          'Usuario: ', h('code', { key: 'u' }, OFFICIAL_ADMIN.username), ' | Clave: ', h('code', { key: 'p' }, OFFICIAL_ADMIN.password)
+        h('div', { key: 'q-lbl', style: { fontSize: '0.78rem', color: '#64748b', fontWeight: '700', letterSpacing: '0.5px' } }, 'CUENTA OFICIAL DE ADMINISTRADOR'),
+        h('strong', { key: 'q-name', style: { fontSize: '1rem', color: '#1d4ed8', display: 'block', marginTop: '2px' } }, `👤 ${OFFICIAL_ADMIN.name}`),
+        h('div', { key: 'q-creds', style: { fontSize: '0.8rem', color: '#475569', marginTop: '4px' } }, [
+          'Usuario: ', h('code', { key: 'u', style: { background: '#e0f2fe', color: '#0369a1', padding: '2px 6px', borderRadius: '4px' } }, OFFICIAL_ADMIN.username),
+          ' | Clave: ', h('code', { key: 'p', style: { background: '#e0f2fe', color: '#0369a1', padding: '2px 6px', borderRadius: '4px' } }, OFFICIAL_ADMIN.password)
         ]),
         h('button', {
           key: 'q-btn',
           className: 'btn btn-secondary',
-          style: { marginTop: '10px', height: '36px', fontSize: '0.8rem' },
+          style: { marginTop: '12px', height: '40px', fontSize: '0.85rem', background: '#ffffff', border: '1px solid #cbd5e1' },
           onClick: handleQuickLogin
         }, '⚡ Ingreso Rápido como Andres Rebolledo')
       ])
@@ -312,8 +313,8 @@ function NewCreditForm({ adminName, onSave, onCancel }) {
     }
   };
 
-  return h('div', { style: { background: 'var(--bg-card)', padding: '20px', borderRadius: '16px', border: '1px solid var(--border-color)' } }, [
-    h('h3', { key: 't', style: { marginBottom: '16px' } }, '➕ Registrar Nuevo Contrato de Financiamiento'),
+  return h('div', { style: { background: 'var(--bg-card)', padding: '24px', borderRadius: '16px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-md)' } }, [
+    h('h3', { key: 't', style: { marginBottom: '18px', color: '#0f172a' } }, '➕ Registrar Nuevo Contrato de Financiamiento'),
     h('form', { key: 'f', onSubmit: handleSubmit }, [
       h('div', { key: 'g1', style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' } }, [
         h('div', { key: 'p1', className: 'form-group' }, [
@@ -353,7 +354,7 @@ function NewCreditForm({ adminName, onSave, onCancel }) {
           h('input', { type: 'number', className: 'form-control', value: totalWeeks, onChange: e => setTotalWeeks(e.target.value), required: true })
         ])
       ]),
-      h('div', { key: 'g5', style: { display: 'flex', gap: '10px', marginTop: '16px' } }, [
+      h('div', { key: 'g5', style: { display: 'flex', gap: '12px', marginTop: '20px' } }, [
         h('button', { key: 'c', type: 'button', className: 'btn btn-secondary', onClick: onCancel }, 'Cancelar'),
         h('button', { key: 's', type: 'submit', className: 'btn btn-success' }, 'Crear Contrato')
       ])
@@ -369,23 +370,23 @@ function AbonoModal({ week, contract, onClose, onSaveAbono }) {
   return h('div', { className: 'modal-overlay' }, [
     h('div', { className: 'modal-content' }, [
       h('div', { key: 'mh', className: 'modal-header' }, [
-        h('h3', { key: 't' }, `Registrar Abono - Semana ${week.weekNumber}`),
+        h('h3', { key: 't', style: { color: '#0f172a' } }, `Registrar Abono - Semana ${week.weekNumber}`),
         h('button', { key: 'c', className: 'close-btn', onClick: onClose }, '×')
       ]),
-      h('p', { key: 'sub', style: { fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '14px' } }, [
-        'Vehículo: ', h('strong', { key: 'p' }, contract.plate), ' | Comprador: ', h('strong', { key: 'b' }, contract.buyerName)
+      h('p', { key: 'sub', style: { fontSize: '0.88rem', color: 'var(--text-muted)', marginBottom: '16px' } }, [
+        'Vehículo: ', h('strong', { key: 'p', style: { color: '#2563eb' } }, contract.plate), ' | Comprador: ', h('strong', { key: 'b', style: { color: '#0f172a' } }, contract.buyerName)
       ]),
       h('div', { key: 'fg1', className: 'form-group' }, [
-        h('label', { className: 'form-label', style: { color: '#10b981', fontWeight: 'bold' } }, 'Monto a Cancelar ($ USD) - EDITABLE:'),
+        h('label', { className: 'form-label', style: { color: '#059669', fontWeight: '700' } }, 'Monto a Cancelar ($ USD) - EDITABLE:'),
         h('input', {
           type: 'number',
           className: 'form-control',
-          style: { fontSize: '1.2rem', fontWeight: 'bold', color: '#10b981' },
+          style: { fontSize: '1.3rem', fontWeight: '800', color: '#059669', border: '2px solid #10b981' },
           value: editableAmount,
           onChange: (e) => setEditableAmount(e.target.value),
           required: true
         }),
-        h('span', { style: { fontSize: '0.75rem', color: 'var(--text-muted)' } }, '* Puedes modificar libremente este monto ($200 sugerido, abonos parciales o pagos mayores).')
+        h('span', { style: { fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' } }, '* Puedes modificar libremente este monto ($200 sugerido, abonos parciales o pagos mayores).')
       ]),
       h('div', { key: 'fg2', className: 'form-group' }, [
         h('label', { className: 'form-label' }, 'Método de Pago:'),
@@ -400,9 +401,9 @@ function AbonoModal({ week, contract, onClose, onSaveAbono }) {
           h('option', { key: 'o4', value: 'Zelle / USDT' }, 'Zelle / USDT')
         ])
       ]),
-      h('div', { key: 'acts', style: { display: 'flex', gap: '10px', marginTop: '20px' } }, [
+      h('div', { key: 'acts', style: { display: 'flex', gap: '12px', marginTop: '22px' } }, [
         h('button', { key: 'btn-c', className: 'btn btn-secondary', onClick: onClose }, 'Cancelar'),
-        h('button', { key: 'btn-s', className: 'btn btn-success', onClick: () => onSaveAbono(week.id, editableAmount, paymentMethod) }, '💾 Registrar Abono y Emitir Comprobante PDF')
+        h('button', { key: 'btn-s', className: 'btn btn-success', onClick: () => onSaveAbono(week.id, editableAmount, paymentMethod) }, '💾 Registrar y Emitir PDF')
       ])
     ])
   ]);
@@ -415,7 +416,7 @@ function PauseModal({ week, onClose, onSavePausa }) {
   return h('div', { className: 'modal-overlay' }, [
     h('div', { className: 'modal-content' }, [
       h('div', { key: 'mh', className: 'modal-header' }, [
-        h('h3', { key: 't' }, '🔵 Marcar Pausa / Semana Libre ($0.00)'),
+        h('h3', { key: 't', style: { color: '#1d4ed8' } }, '🔵 Marcar Pausa / Semana Libre ($0.00)'),
         h('button', { key: 'c', className: 'close-btn', onClick: onClose }, '×')
       ]),
       h('p', { key: 'sub', style: { fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '14px' } }, `Congelar la Semana ${week.weekNumber}. No genera cobro de $200 ni mora, pero mantiene el saldo sin reducir.`),
@@ -430,7 +431,7 @@ function PauseModal({ week, onClose, onSavePausa }) {
           required: true
         })
       ]),
-      h('div', { key: 'acts', style: { display: 'flex', gap: '10px', marginTop: '20px' } }, [
+      h('div', { key: 'acts', style: { display: 'flex', gap: '12px', marginTop: '20px' } }, [
         h('button', { key: 'btn-c', className: 'btn btn-secondary', onClick: onClose }, 'Cancelar'),
         h('button', { key: 'btn-s', className: 'btn btn-primary', onClick: () => onSavePausa(week.id, reason) }, '🔵 Congelar Semana Libre')
       ])
@@ -462,7 +463,7 @@ function ReceiptModal({ receipt, onClose }) {
   return h('div', { className: 'modal-overlay' }, [
     h('div', { className: 'modal-content', style: { maxWidth: '650px' } }, [
       h('div', { key: 'mh', className: 'modal-header' }, [
-        h('h3', { key: 't' }, `Comprobante de Abono #${receipt.receiptNumber}`),
+        h('h3', { key: 't', style: { color: '#0f172a' } }, `Comprobante de Abono #${receipt.receiptNumber}`),
         h('button', { key: 'c', className: 'close-btn', onClick: onClose }, '×')
       ]),
       h('div', { key: 'pr', id: 'printable-receipt', className: 'receipt-printable' }, [
@@ -503,7 +504,7 @@ function ReceiptModal({ receipt, onClose }) {
           ])
         ])
       ]),
-      h('div', { key: 'acts', style: { display: 'flex', gap: '10px', marginTop: '20px' } }, [
+      h('div', { key: 'acts', style: { display: 'flex', gap: '12px', marginTop: '20px' } }, [
         h('button', { key: 'b1', className: 'btn btn-secondary', onClick: onClose }, 'Cerrar'),
         h('button', { key: 'b2', className: 'btn btn-primary', onClick: handleDownloadPDF }, '📄 Descargar Comprobante PDF / Imprimir')
       ])
@@ -537,30 +538,30 @@ function FinancialBalanceDashboard({ db }) {
     });
   }
 
-  return h('div', { style: { background: 'var(--bg-card)', padding: '18px', borderRadius: '16px', border: '1px solid var(--border-color)' } }, [
-    h('h3', { key: 't', style: { marginBottom: '16px' } }, '📊 Balance y Recaudación de Financiamientos'),
-    h('div', { key: 'g1', style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' } }, [
-      h('div', { key: 'b1', style: { background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', padding: '14px', borderRadius: '10px' } }, [
-        h('div', { key: 'lbl1', style: { fontSize: '0.8rem', color: 'var(--text-muted)' } }, 'TOTAL RECAUDADO ACUMULADO'),
-        h('div', { key: 'val1', style: { fontSize: '1.4rem', fontWeight: 'bold', color: '#10b981' } }, `$${totalRecaudado} USD`)
+  return h('div', { style: { background: 'var(--bg-card)', padding: '22px', borderRadius: '16px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-md)' } }, [
+    h('h3', { key: 't', style: { marginBottom: '18px', color: '#0f172a' } }, '📊 Balance y Recaudación de Financiamientos'),
+    h('div', { key: 'g1', style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '22px' } }, [
+      h('div', { key: 'b1', style: { background: '#ecfdf5', border: '1px solid #a7f3d0', padding: '16px', borderRadius: '12px' } }, [
+        h('div', { key: 'lbl1', style: { fontSize: '0.8rem', color: '#047857', fontWeight: '700' } }, 'TOTAL RECAUDADO ACUMULADO'),
+        h('div', { key: 'val1', style: { fontSize: '1.5rem', fontWeight: '800', color: '#059669', marginTop: '2px' } }, `$${totalRecaudado} USD`)
       ]),
-      h('div', { key: 'b2', style: { background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', padding: '14px', borderRadius: '10px' } }, [
-        h('div', { key: 'lbl2', style: { fontSize: '0.8rem', color: 'var(--text-muted)' } }, 'CARTERA TOTAL PENDIENTE'),
-        h('div', { key: 'val2', style: { fontSize: '1.4rem', fontWeight: 'bold', color: '#ef4444' } }, `$${totalCarteraPendiente} USD`)
+      h('div', { key: 'b2', style: { background: '#fef2f2', border: '1px solid #fecaca', padding: '16px', borderRadius: '12px' } }, [
+        h('div', { key: 'lbl2', style: { fontSize: '0.8rem', color: '#b91c1c', fontWeight: '700' } }, 'CARTERA TOTAL PENDIENTE'),
+        h('div', { key: 'val2', style: { fontSize: '1.5rem', fontWeight: '800', color: '#dc2626', marginTop: '2px' } }, `$${totalCarteraPendiente} USD`)
       ])
     ]),
-    h('h4', { key: 't2' }, 'Historial de Comprobantes Emitidos'),
-    h('div', { key: 'list', style: { display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' } }, [
+    h('h4', { key: 't2', style: { color: '#0f172a', marginBottom: '10px' } }, 'Historial de Comprobantes Emitidos'),
+    h('div', { key: 'list', style: { display: 'flex', flexDirection: 'column', gap: '10px' } }, [
       (!db || !Array.isArray(db.receipts) || db.receipts.length === 0) 
         ? h('p', { key: 'empty', style: { color: 'var(--text-muted)', fontSize: '0.85rem' } }, 'No hay recibos registrados.')
         : db.receipts.map(r => (
-            h('div', { key: r.id, style: { background: 'var(--bg-card-hover)', padding: '12px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' } }, [
+            h('div', { key: r.id, style: { background: '#f8fafc', border: '1px solid #e2e8f0', padding: '14px', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' } }, [
               h('div', { key: 'info' }, [
-                h('strong', { key: 'num' }, `Comprobante #${r.receiptNumber}`), ` - ${r.plate}`,
-                h('div', { key: 'sub', style: { fontSize: '0.8rem', color: 'var(--text-muted)' } }, `${r.buyerName} | Fecha: ${r.date}`)
+                h('strong', { key: 'num', style: { color: '#0f172a' } }, `Comprobante #${r.receiptNumber}`), ` - ${r.plate}`,
+                h('div', { key: 'sub', style: { fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '2px' } }, `${r.buyerName} | Fecha: ${r.date}`)
               ]),
               h('div', { key: 'amt', style: { textAlign: 'right' } }, [
-                h('strong', { style: { color: '#10b981' } }, `$${r.amountPaid} USD`)
+                h('strong', { style: { color: '#059669', fontSize: '1.1rem' } }, `$${r.amountPaid} USD`)
               ])
             ])
           ))
@@ -568,7 +569,7 @@ function FinancialBalanceDashboard({ db }) {
   ]);
 }
 
-// 7. COMPONENTE PRINCIPAL (APP)
+// 7. COMPONENTE PRINCIPAL (APP CON BOTONES MEJOR ORGANIZADOS)
 function App() {
   const [db, setDb] = useState(loadDB);
   
@@ -624,7 +625,6 @@ function App() {
     } catch(e) {}
   });
 
-  // SI NO HAY SESIÓN INICIADA: RENDERIZAR LOGIN SCREEN
   if (!userSession || typeof userSession !== 'object' || !userSession.name) {
     return h(LoginScreen, {
       onLoginSuccess: (userData) => {
@@ -793,8 +793,8 @@ function App() {
           h('h2', { key: 'h' }, 'Control Financiamiento Auto')
         ]),
         h('div', { key: 'usr', style: { display: 'flex', alignItems: 'center', gap: '10px' } }, [
-          h('div', { key: 'u', style: { fontSize: '0.82rem', color: '#60a5fa', background: 'rgba(59, 130, 246, 0.15)', padding: '6px 12px', borderRadius: '20px', border: '1px solid rgba(59, 130, 246, 0.3)', fontWeight: '600' } }, `👤 ${userSession.name || OFFICIAL_ADMIN.name}`),
-          h('button', { key: 'b', className: 'btn btn-secondary', style: { height: '32px', padding: '0 10px', fontSize: '0.75rem' }, onClick: handleLogout }, 'Salir')
+          h('div', { key: 'u', style: { fontSize: '0.82rem', color: '#1d4ed8', background: '#eff6ff', padding: '6px 14px', borderRadius: '20px', border: '1px solid #bfdbfe', fontWeight: '700' } }, `👤 ${userSession.name || OFFICIAL_ADMIN.name}`),
+          h('button', { key: 'b', className: 'btn btn-secondary', style: { height: '34px', padding: '0 12px', fontSize: '0.8rem' }, onClick: handleLogout }, 'Salir')
         ])
       ]),
       h('div', { key: 'search', className: 'search-container' }, [
@@ -830,15 +830,16 @@ function App() {
             key: c.id,
             onClick: () => setSelectedContractId(c.id),
             style: {
-              background: c.id === selectedContractId ? '#2563eb' : 'var(--bg-card)',
+              background: c.id === selectedContractId ? '#2563eb' : '#ffffff',
               color: c.id === selectedContractId ? '#ffffff' : 'var(--text-muted)',
               border: '1px solid var(--border-color)',
-              padding: '8px 14px',
+              padding: '8px 16px',
               borderRadius: '20px',
-              fontWeight: '600',
+              fontWeight: '700',
               fontSize: '0.85rem',
               whiteSpace: 'nowrap',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              boxShadow: c.id === selectedContractId ? '0 4px 12px rgba(37, 99, 235, 0.25)' : 'none'
             }
           }, `🚘 ${c.plate} - ${c.vehicleName}`)
         ))
@@ -847,7 +848,7 @@ function App() {
       h('div', { key: 'prog', className: 'progress-card' }, [
         h('div', { key: 'ph', className: 'progress-header' }, [
           h('span', { key: 'p', className: 'plate-pill', style: { fontSize: '1.1rem' } }, currentContract.plate),
-          h('strong', { key: 'pct', style: { color: '#10b981', fontSize: '1.1rem' } }, `${progressPercent}% COMPLETADO`)
+          h('strong', { key: 'pct', style: { color: '#059669', fontSize: '1.15rem' } }, `${progressPercent}% COMPLETADO`)
         ]),
         h('div', { key: 'pbc', className: 'progress-bar-container' }, [
           h('div', { key: 'pbf', className: 'progress-bar-fill', style: { width: `${progressPercent}%` } })
@@ -855,35 +856,54 @@ function App() {
         h('div', { key: 'psg', className: 'progress-stats-grid' }, [
           h('div', { key: 'sb1', className: 'progress-stat-box' }, [
             h('div', { key: 'l', className: 'progress-stat-label' }, 'Costo Total'),
-            h('div', { key: 'v', className: 'progress-stat-value', style: { color: '#f8fafc' } }, `$${currentContract.totalVehiclePrice}`)
+            h('div', { key: 'v', className: 'progress-stat-value', style: { color: '#0f172a' } }, `$${currentContract.totalVehiclePrice}`)
           ]),
           h('div', { key: 'sb2', className: 'progress-stat-box' }, [
             h('div', { key: 'l', className: 'progress-stat-label' }, 'Total Pagado'),
-            h('div', { key: 'v', className: 'progress-stat-value', style: { color: '#10b981' } }, `$${totalPaid}`)
+            h('div', { key: 'v', className: 'progress-stat-value', style: { color: '#059669' } }, `$${totalPaid}`)
           ]),
           h('div', { key: 'sb3', className: 'progress-stat-box' }, [
             h('div', { key: 'l', className: 'progress-stat-label' }, 'Pendiente'),
-            h('div', { key: 'v', className: 'progress-stat-value', style: { color: '#ef4444' } }, `$${pendingBalance}`)
+            h('div', { key: 'v', className: 'progress-stat-value', style: { color: '#dc2626' } }, `$${pendingBalance}`)
           ])
         ])
       ]),
 
-      h('div', { key: 'det', style: { background: 'var(--bg-card)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border-color)', marginBottom: '16px' } }, [
-        h('h3', { key: 't', style: { fontSize: '1.1rem', marginBottom: '8px' } }, `${currentContract.vehicleName} (${currentContract.vehicleModel})`),
-        h('div', { key: 'info', style: { fontSize: '0.85rem', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: '4px' } }, [
+      // DATOS Y ESTRUCTURA ORGANIZADA DE BOTONES DE ACCIÓN
+      h('div', { key: 'det', style: { background: 'var(--bg-card)', padding: '20px', borderRadius: '16px', border: '1px solid var(--border-color)', marginBottom: '18px', boxShadow: 'var(--shadow-md)' } }, [
+        h('h3', { key: 't', style: { fontSize: '1.2rem', marginBottom: '8px', color: '#0f172a' } }, `${currentContract.vehicleName} (${currentContract.vehicleModel})`),
+        h('div', { key: 'info', style: { fontSize: '0.88rem', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '18px' } }, [
           h('div', { key: 'b' }, ['👤 ', h('strong', { key: 's' }, 'Comprador / Deudor: '), `${currentContract.buyerName} (Doc: ${currentContract.buyerDocument})`]),
           h('div', { key: 'v' }, ['🏢 ', h('strong', { key: 's' }, 'Vendedor / Dueño: '), currentContract.sellerName]),
           h('div', { key: 'p' }, ['📅 ', h('strong', { key: 's' }, 'Plazo: '), `${currentContract.totalWeeks} Semanas (~14 meses) | 💰 Abono sugerido: $${currentContract.weeklyRate}/sem`])
         ]),
-        h('div', { key: 'acts', className: 'vehicle-action-buttons' }, [
-          h('button', { key: 'b1', className: 'btn btn-success', onClick: () => setSelectedWeek(currentWeeks.find(w => w.status === 'PENDIENTE') || currentWeeks[0]) }, '➕ Registrar Abono'),
-          h('button', { key: 'b2', className: 'btn btn-primary', onClick: () => setShowPauseModal(true) }, '🔵 Marcar Pausa'),
-          h('button', { key: 'b3', className: 'btn btn-warning', onClick: () => handleArchiveContract(currentContract.id) }, '📦 Archivar / Liquidado'),
-          h('button', { key: 'b4', className: 'btn btn-danger', onClick: () => setShowDeleteModal(true) }, '🗑️ Borrar')
+
+        // NUEVA ESTRUCTURA LIMPIA Y ORGANIZADA DE BOTONES
+        h('div', { key: 'acts-wrapper', className: 'action-buttons-wrapper' }, [
+          // Acciones Principales
+          h('div', { key: 'row1', className: 'primary-action-row' }, [
+            h('button', {
+              key: 'b-abono',
+              className: 'btn btn-success',
+              style: { height: '52px', fontSize: '1.02rem' },
+              onClick: () => setSelectedWeek(currentWeeks.find(w => w.status === 'PENDIENTE') || currentWeeks[0])
+            }, '➕ Registrar Abono')
+          ]),
+
+          // Acciones Secundarias (Pausa y Archivar)
+          h('div', { key: 'row2', className: 'secondary-actions-grid' }, [
+            h('button', { key: 'b-pausa', className: 'btn btn-primary', onClick: () => setShowPauseModal(true) }, '🔵 Marcar Pausa'),
+            h('button', { key: 'b-archivar', className: 'btn btn-warning', onClick: () => handleArchiveContract(currentContract.id) }, '📦 Archivar / Liquidado')
+          ]),
+
+          // Acción Peligrosa (Borrar separado con borde rojo)
+          h('div', { key: 'row3', className: 'danger-action-row' }, [
+            h('button', { key: 'b-borrar', className: 'btn btn-danger-outline', onClick: () => setShowDeleteModal(true) }, '🗑️ Borrar')
+          ])
         ])
       ]),
 
-      h('h3', { key: 'wk-t', style: { marginBottom: '12px' } }, 'Calendario de Semanas por Estado'),
+      h('h3', { key: 'wk-t', style: { marginBottom: '14px', color: '#0f172a' } }, 'Calendario de Semanas por Estado'),
       h('div', { key: 'wk-list', className: 'weeks-cards-mobile' }, 
         currentWeeks.map(w => (
           h('div', {
@@ -892,15 +912,15 @@ function App() {
             onClick: () => setSelectedWeek(w)
           }, [
             h('div', { key: 'l' }, [
-              h('strong', { key: 'n' }, `Semana ${w.weekNumber}`),
-              h('div', { key: 'r', style: { fontSize: '0.8rem', color: 'var(--text-muted)' } }, w.rangeText),
-              w.status === 'PAUSA' ? h('div', { key: 'pr', style: { fontSize: '0.75rem', color: '#60a5fa', marginTop: '2px' } }, `🛠️ ${w.pauseReason}`) : null
+              h('strong', { key: 'n', style: { color: '#0f172a', fontSize: '1rem' } }, `Semana ${w.weekNumber}`),
+              h('div', { key: 'r', style: { fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '2px' } }, w.rangeText),
+              w.status === 'PAUSA' ? h('div', { key: 'pr', style: { fontSize: '0.78rem', color: '#2563eb', fontWeight: '600', marginTop: '3px' } }, `🛠️ ${w.pauseReason}`) : null
             ]),
             h('div', { key: 'r', style: { textAlign: 'right' } }, [
               h('span', { key: 'badge', className: `status-badge-pill badge-${w.status}` }, 
                 w.status === 'PAGADA' ? '🟢 Pagada' : (w.status === 'PENDIENTE' ? '🟡 Pendiente' : (w.status === 'PAUSA' ? '🔵 Pausa / Libre' : '🔴 En Mora'))
               ),
-              h('div', { key: 'amt', style: { fontWeight: '700', marginTop: '4px' } }, `$${w.status === 'PAGADA' ? w.paidAmount : (w.status === 'PAUSA' ? 0 : w.agreedAmount)} USD`)
+              h('div', { key: 'amt', style: { fontWeight: '800', marginTop: '6px', fontSize: '1.05rem', color: '#0f172a' } }, `$${w.status === 'PAGADA' ? w.paidAmount : (w.status === 'PAUSA' ? 0 : w.agreedAmount)} USD`)
             ])
           ])
         ))
@@ -917,17 +937,17 @@ function App() {
 
     // PESTAÑA 3: ARCHIVADOS
     activeTab === 'archivados' ? h('section', { key: 'tab3' }, [
-      h('h3', { key: 't', style: { marginBottom: '16px' } }, 'Contratos Archivados / Liquidados (100% Pagados)'),
+      h('h3', { key: 't', style: { marginBottom: '16px', color: '#0f172a' } }, 'Contratos Archivados / Liquidados (100% Pagados)'),
       db.contracts.filter(c => c.status === 'ARCHIVED_PAID').length === 0 
         ? h('p', { key: 'empty', style: { color: 'var(--text-muted)' } }, 'No hay contratos archivados aún.')
         : h('div', { key: 'list', style: { display: 'flex', flexDirection: 'column', gap: '12px' } }, 
             db.contracts.filter(c => c.status === 'ARCHIVED_PAID').map(c => (
-              h('div', { key: c.id, style: { background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '16px' } }, [
+              h('div', { key: c.id, style: { background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '16px', boxShadow: 'var(--shadow-sm)' } }, [
                 h('div', { key: 'hdr', style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' } }, [
                   h('span', { key: 'p', className: 'plate-pill' }, c.plate),
-                  h('span', { key: 's', style: { color: '#10b981', fontWeight: 'bold', fontSize: '0.85rem' } }, '100% LIQUIDADO 🟢')
+                  h('span', { key: 's', style: { color: '#059669', fontWeight: 'bold', fontSize: '0.85rem' } }, '100% LIQUIDADO 🟢')
                 ]),
-                h('h4', { key: 'n', style: { marginTop: '8px' } }, c.vehicleName),
+                h('h4', { key: 'n', style: { marginTop: '8px', color: '#0f172a' } }, c.vehicleName),
                 h('div', { key: 'sub', style: { fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '4px' } }, `Comprador: ${c.buyerName} | Costo Total: $${c.totalVehiclePrice} USD`)
               ])
             ))
@@ -961,11 +981,11 @@ function App() {
 
     showDeleteModal ? h('div', { key: 'mod-del', className: 'modal-overlay' }, [
       h('div', { className: 'modal-content', style: { maxWidth: '400px' } }, [
-        h('h3', { key: 't' }, 'Confirmar Eliminación'),
+        h('h3', { key: 't', style: { color: '#dc2626' } }, 'Confirmar Eliminación'),
         h('p', { key: 'p', style: { marginTop: '10px', color: 'var(--text-muted)' } }, [
-          '¿Está seguro de que desea borrar permanentemente el contrato del vehículo ', h('strong', { key: 'pl' }, currentContract ? currentContract.plate : ''), '? Esta acción no se puede deshacer.'
+          '¿Está seguro de que desea borrar permanentemente el contrato del vehículo ', h('strong', { key: 'pl', style: { color: '#0f172a' } }, currentContract ? currentContract.plate : ''), '? Esta acción no se puede deshacer.'
         ]),
-        h('div', { key: 'acts', style: { display: 'flex', gap: '10px', marginTop: '20px' } }, [
+        h('div', { key: 'acts', style: { display: 'flex', gap: '12px', marginTop: '20px' } }, [
           h('button', { key: 'c', className: 'btn btn-secondary', onClick: () => setShowDeleteModal(false) }, 'Cancelar'),
           h('button', { key: 'd', className: 'btn btn-danger', onClick: () => handleDeleteContract(currentContract.id) }, 'Eliminar Definitivamente')
         ])
@@ -994,7 +1014,6 @@ function App() {
   ]);
 }
 
-// INICIALIZACIÓN SÍNCRONA DE RENDERIZADO INSTANTÁNEO
 function renderApp() {
   const rootElement = document.getElementById('root');
   if (rootElement && window.React && window.ReactDOM) {
@@ -1007,7 +1026,6 @@ function renderApp() {
   }
 }
 
-// Renderizado Inmediato al cargar app.js
 renderApp();
 
 if (document.readyState === 'loading') {
