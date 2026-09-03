@@ -1,6 +1,6 @@
 /* ==========================================================================
    SISTEMA DE GESTIÓN DE FINANCIAMIENTO DE VEHÍCULOS A CRÉDITO Y CONTROL SEMANAL
-   React 18 Native - Selector de Estados por Semana y Emisión de Facturas PDF
+   React 18 Native - Generador de Facturas PDF e Impresión Nativa sin Errores
    ========================================================================== */
 
 const { useState, useEffect } = React;
@@ -16,7 +16,7 @@ const OFFICIAL_ADMIN = {
 };
 
 const STORAGE_KEY_DB = 'vehicle_financing_credit_db_v1';
-const STORAGE_KEY_AUTH = 'vehicle_financing_auth_session_v10';
+const STORAGE_KEY_AUTH = 'vehicle_financing_auth_session_v11';
 
 const INITIAL_SEED = {
   contracts: [
@@ -307,7 +307,6 @@ function WeekActionModal({ week, contract, db, onClose, onSelectAbono, onSelectP
       h('h4', { key: 'opts-lbl', style: { fontSize: '0.9rem', color: '#0f172a', marginBottom: '12px' } }, 'Seleccione la acción a realizar:'),
 
       h('div', { key: 'opts-grid', style: { display: 'flex', flexDirection: 'column', gap: '10px' } }, [
-        // OPCIÓN 1: PAGADA (REGISTRAR ABONO Y GENERAR FACTURA)
         h('button', {
           key: 'opt-pagada',
           className: 'btn btn-success',
@@ -321,7 +320,6 @@ function WeekActionModal({ week, contract, db, onClose, onSelectAbono, onSelectP
           ])
         ]),
 
-        // OPCIÓN 2: PAUSA / SEMANA LIBRE ($0.00 - TALLER)
         h('button', {
           key: 'opt-pausa',
           className: 'btn btn-primary',
@@ -335,7 +333,6 @@ function WeekActionModal({ week, contract, db, onClose, onSelectAbono, onSelectP
           ])
         ]),
 
-        // OPCIÓN 3: PENDIENTE O MORA
         h('button', {
           key: 'opt-pendiente',
           className: 'btn btn-secondary',
@@ -349,7 +346,6 @@ function WeekActionModal({ week, contract, db, onClose, onSelectAbono, onSelectP
           ])
         ]),
 
-        // OPCIÓN 4: VER/RE-EMITIR FACTURA PDF EXISTENTE
         existingReceipt ? h('button', {
           key: 'opt-receipt',
           className: 'btn',
@@ -529,46 +525,152 @@ function PauseModal({ week, onClose, onSavePausa }) {
   ]);
 }
 
-// 6. MODAL DE FACTURA COMPLETA OFICIAL DE PAGO
+// 6. MODAL DE FACTURA COMPLETA OFICIAL Y DESCARGA / IMPRESIÓN PDF NATIVA
 function ReceiptModal({ receipt, onClose }) {
-  const handleDownloadPDF = () => {
-    const originalElem = document.getElementById('printable-receipt');
-    if (!originalElem) return;
 
-    const exportContainer = document.createElement('div');
-    exportContainer.style.position = 'absolute';
-    exportContainer.style.left = '-9999px';
-    exportContainer.style.top = '0';
-    exportContainer.style.width = '790px';
-    exportContainer.style.background = '#ffffff';
-    exportContainer.style.padding = '30px';
-    exportContainer.innerHTML = originalElem.innerHTML;
-    document.body.appendChild(exportContainer);
+  // Descarga Directa en PDF usando el elemento visible en el DOM (Garantiza 100% que no salga en blanco)
+  const handleDownloadPDF = () => {
+    const element = document.getElementById('printable-receipt');
+    if (!element) return;
 
     const opt = {
-      margin:       [10, 10, 10, 10],
+      margin:       [8, 8, 8, 8],
       filename:     `Factura_Oficial_Abono_${receipt.receiptNumber}_${receipt.plate}.pdf`,
       image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { scale: 2, useCORS: true, scrollY: 0, windowWidth: 800 },
+      html2canvas:  { scale: 2, useCORS: true, logging: false },
       jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
     if (window.html2pdf) {
-      window.html2pdf().set(opt).from(exportContainer).save().then(() => {
-        document.body.removeChild(exportContainer);
-      }).catch(err => {
-        console.error("Error html2pdf:", err);
-        document.body.removeChild(exportContainer);
-        window.print();
+      window.html2pdf().set(opt).from(element).save().catch(err => {
+        console.warn("Falling back to print popup:", err);
+        handleNativePrint();
       });
     } else {
-      document.body.removeChild(exportContainer);
-      window.print();
+      handleNativePrint();
     }
   };
 
+  // Impresión / Guardado Vectorial en PDF Nativo de Página Completa A4
   const handleNativePrint = () => {
-    window.print();
+    const printWin = window.open('', '_blank');
+    if (!printWin) {
+      window.print();
+      return;
+    }
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html lang="es">
+      <head>
+        <meta charset="UTF-8">
+        <title>Factura Comprobante N° ${receipt.receiptNumber} - ${receipt.plate}</title>
+        <style>
+          @page { size: A4; margin: 15mm; }
+          body { font-family: 'Helvetica Neue', Arial, sans-serif; color: #0f172a; margin: 0; padding: 20px; background: #ffffff; }
+          .header { text-align: center; border-bottom: 2.5px solid #0f172a; padding-bottom: 12px; margin-bottom: 20px; }
+          .logo { font-size: 32px; margin-bottom: 4px; }
+          .title { font-size: 20px; font-weight: 800; margin: 0; text-transform: uppercase; }
+          .subtitle { font-size: 14px; font-weight: 700; color: #2563eb; margin: 6px 0; }
+          .meta-bar { background: #f8fafc; border: 1px solid #e2e8f0; padding: 8px 16px; border-radius: 6px; display: flex; justify-content: space-around; font-size: 13px; font-weight: 600; margin-top: 10px; }
+          .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; font-size: 13px; }
+          .card-box { border: 1px solid #cbd5e1; padding: 12px 14px; border-radius: 8px; background: #ffffff; }
+          .card-title { color: #1e3a8a; font-size: 13px; font-weight: 700; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-bottom: 8px; }
+          .paid-box { border: 2px solid #059669; background: #ecfdf5; padding: 16px; border-radius: 10px; margin-bottom: 18px; }
+          .paid-title { color: #047857; font-weight: 800; font-size: 14px; margin: 0 0 10px 0; }
+          .paid-amount { font-size: 26px; font-weight: 900; color: #059669; text-align: right; }
+          .balance-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; text-align: center; margin-bottom: 20px; }
+          .bal-item { padding: 10px; border-radius: 6px; font-size: 13px; }
+          .disclaimer { font-size: 11px; color: #64748b; text-align: center; font-style: italic; margin-top: 20px; margin-bottom: 40px; }
+          .signatures { display: flex; justify-content: space-between; margin-top: 50px; }
+          .sig-box { width: 45%; text-align: center; border-top: 1.5px solid #0f172a; padding-top: 6px; font-size: 13px; font-weight: 700; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="logo">🛡️</div>
+          <div class="title">SISTEMA DE FINANCIAMIENTO VEHICULAR</div>
+          <div class="subtitle">FACTURA COMPROBANTE OFICIAL DE ABONO Y RECIBO DE PAGO</div>
+          <div class="meta-bar">
+            <span>N° Recibo: <strong>#REC-${receipt.receiptNumber}</strong></span>
+            <span>Fecha: <strong>${receipt.date}</strong></span>
+            <span style="color: #059669;">ESTADO: APROBADO 🟢</span>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card-box">
+            <div class="card-title">DATOS DEL VEHÍCULO:</div>
+            <div>Placa de Identificación: <strong style="color: #2563eb; font-size: 15px;">${receipt.plate}</strong></div>
+            <div style="margin-top: 4px;">Modelo / Marca: <strong>${receipt.vehicleModel}</strong></div>
+          </div>
+          <div class="card-box">
+            <div class="card-title">PARTES DEL CONTRATO:</div>
+            <div>Vendedor / Dueño: <strong>${receipt.sellerName}</strong></div>
+            <div style="margin-top: 4px;">Comprador / Deudor: <strong>${receipt.buyerName}</strong></div>
+            <div style="margin-top: 4px;">Cédula / Documento: <strong>${receipt.buyerDocument || 'No registrado'}</strong></div>
+          </div>
+        </div>
+
+        <div class="paid-box">
+          <div class="paid-title">💰 DETALLE DEL MONTO CANCELADO EN ESTA FACTURA</div>
+          <div style="display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 8px;">
+            <span>Concepto: <strong>Abono de Cuota Semanal a Crédito</strong></span>
+            <span>Período: <strong>${receipt.weekRange}</strong></span>
+          </div>
+          <div style="font-size: 13px; color: #475569;">Método de Pago: <strong>${receipt.paymentMethod}</strong></div>
+          <div class="paid-amount">$${receipt.amountPaid}.00 USD</div>
+        </div>
+
+        <div class="card-box" style="margin-bottom: 20px; background: #f8fafc;">
+          <div class="card-title" style="color: #0f172a;">📊 ESTADO DE CUENTA ACTUALIZADO DEL VEHÍCULO</div>
+          <div class="balance-grid">
+            <div class="bal-item" style="border: 1px solid #e2e8f0; background: #fff;">
+              <div style="color: #64748b; font-size: 11px;">Saldo Anterior</div>
+              <strong style="font-size: 16px;">$${receipt.previousBalance}.00 USD</strong>
+            </div>
+            <div class="bal-item" style="border: 1px solid #a7f3d0; background: #fff;">
+              <div style="color: #047857; font-size: 11px;">Abono Recibido</div>
+              <strong style="font-size: 16px; color: #059669;">-$${receipt.amountPaid}.00 USD</strong>
+            </div>
+            <div class="bal-item" style="border: 1px solid #fecaca; background: #fef2f2;">
+              <div style="color: #b91c1c; font-size: 11px; font-weight: bold;">NUEVO SALDO PENDIENTE</div>
+              <strong style="font-size: 16px; color: #dc2626;">$${receipt.newBalance}.00 USD</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="disclaimer">
+          * Este documento certifica la recepción conforme del pago realizado. El comprador y vendedor expresan su conformidad con el saldo pendiente registrado.
+        </div>
+
+        <div class="signatures">
+          <div class="sig-box">
+            <div style="height: 45px;"></div>
+            <div>FIRMA VENDEDOR / DUEÑO</div>
+            <div style="font-weight: normal; font-size: 12px; margin-top: 2px;">${receipt.sellerName}</div>
+          </div>
+          <div class="sig-box">
+            <div style="height: 45px;"></div>
+            <div>FIRMA COMPRADOR / DEUDOR</div>
+            <div style="font-weight: normal; font-size: 12px; margin-top: 2px;">${receipt.buyerName} (${receipt.buyerDocument || 'Doc'})</div>
+          </div>
+        </div>
+
+        <script>
+          window.onload = function() {
+            setTimeout(function() {
+              window.print();
+            }, 300);
+          };
+        </script>
+      </body>
+      </html>
+    `;
+
+    printWin.document.open();
+    printWin.document.write(htmlContent);
+    printWin.document.close();
   };
 
   return h('div', { className: 'modal-overlay' }, [
@@ -663,7 +765,7 @@ function ReceiptModal({ receipt, onClose }) {
       h('div', { key: 'acts', style: { display: 'grid', gridTemplateColumns: '1fr 2fr 1fr', gap: '10px', marginTop: '20px' } }, [
         h('button', { key: 'b1', className: 'btn btn-secondary', onClick: onClose }, 'Cerrar'),
         h('button', { key: 'b2', className: 'btn btn-success', style: { fontSize: '0.92rem' }, onClick: handleDownloadPDF }, '📄 Descargar Factura PDF Completa'),
-        h('button', { key: 'b3', className: 'btn btn-primary', style: { fontSize: '0.85rem' }, onClick: handleNativePrint }, '🖨️ Imprimir')
+        h('button', { key: 'b3', className: 'btn btn-primary', style: { fontSize: '0.85rem' }, onClick: handleNativePrint }, '🖨️ Imprimir / PDF Nativo')
       ])
     ])
   ]);
@@ -726,7 +828,7 @@ function FinancialBalanceDashboard({ db }) {
   ]);
 }
 
-// 8. COMPONENTE PRINCIPAL (APP CON NAVEGACIÓN Y CONTROL DE SEMANAS)
+// 8. COMPONENTE PRINCIPAL
 function App() {
   const [db, setDb] = useState(loadDB);
   
@@ -745,7 +847,6 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedContractId, setSelectedContractId] = useState('CTR-001');
 
-  // Estados de Modales
   const [selectedWeek, setSelectedWeek] = useState(null);
   const [activeWeekForAbono, setActiveWeekForAbono] = useState(null);
   const [activeWeekForPause, setActiveWeekForPause] = useState(null);
@@ -834,7 +935,6 @@ function App() {
     localStorage.removeItem(STORAGE_KEY_AUTH);
   };
 
-  // Guardar Abono y Abrir Factura PDF Automáticamente
   const handleSaveAbono = (weekId, editableAmount, paymentMethod) => {
     const numericAmount = Number(editableAmount);
 
@@ -882,10 +982,9 @@ function App() {
     setReceiptData(newReceipt);
     setActiveWeekForAbono(null);
     setSelectedWeek(null);
-    setShowReceiptModal(true); // Abrir Factura PDF inmediatamente
+    setShowReceiptModal(true);
   };
 
-  // Guardar Pausa
   const handleSavePausa = (weekId, pauseReason) => {
     const updatedWeeks = db.weeklyInstallments.map(w => {
       if (w.id === weekId) {
@@ -904,7 +1003,6 @@ function App() {
     setSelectedWeek(null);
   };
 
-  // Cambiar Estado Directo a Pendiente o Mora
   const handleMarkStatus = (weekId, newStatus) => {
     const updatedWeeks = db.weeklyInstallments.map(w => {
       if (w.id === weekId) {
@@ -1065,7 +1163,7 @@ function App() {
               style: { height: '52px', fontSize: '1.02rem' },
               onClick: () => {
                 const targetW = currentWeeks.find(w => w.status === 'PENDIENTE') || currentWeeks[0];
-                setSelectedWeek(targetW);
+                setActiveWeekForAbono(targetW);
               }
             }, '➕ Registrar Abono')
           ]),
@@ -1090,7 +1188,7 @@ function App() {
           h('div', {
             key: w.id,
             className: `week-card-item status-${w.status}`,
-            onClick: () => setSelectedWeek(w) // Al tocar la semana abre el Modal Selector de Acción
+            onClick: () => setSelectedWeek(w)
           }, [
             h('div', { key: 'l' }, [
               h('strong', { key: 'n', style: { color: '#0f172a', fontSize: '1rem' } }, `Semana ${w.weekNumber}`),
