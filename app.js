@@ -1,6 +1,6 @@
 /* ==========================================================================
    SISTEMA DE GESTIÓN DE FINANCIAMIENTO DE VEHÍCULOS A CRÉDITO Y CONTROL SEMANAL
-   React 18 Native - Generador de Factura Completa en PDF e Impresión
+   React 18 Native - Selector de Estados por Semana y Emisión de Facturas PDF
    ========================================================================== */
 
 const { useState, useEffect } = React;
@@ -16,7 +16,7 @@ const OFFICIAL_ADMIN = {
 };
 
 const STORAGE_KEY_DB = 'vehicle_financing_credit_db_v1';
-const STORAGE_KEY_AUTH = 'vehicle_financing_auth_session_v9';
+const STORAGE_KEY_AUTH = 'vehicle_financing_auth_session_v10';
 
 const INITIAL_SEED = {
   contracts: [
@@ -281,7 +281,97 @@ function LoginScreen({ onLoginSuccess }) {
   );
 }
 
-// 2. FORMULARIO NUEVO CRÉDITO
+// 2. MODAL SELECTOR DE ACCIÓN PARA CADA SEMANA
+function WeekActionModal({ week, contract, db, onClose, onSelectAbono, onSelectPausa, onMarkStatus, onViewReceipt }) {
+  const existingReceipt = (db && Array.isArray(db.receipts))
+    ? db.receipts.find(r => r.contractId === contract.id && r.weekRange && r.weekRange.includes(`Semana ${week.weekNumber}`))
+    : null;
+
+  return h('div', { className: 'modal-overlay' }, [
+    h('div', { className: 'modal-content', style: { maxWidth: '500px' } }, [
+      h('div', { key: 'mh', className: 'modal-header' }, [
+        h('h3', { key: 't', style: { color: '#0f172a' } }, `Gestión de Semana ${week.weekNumber}`),
+        h('button', { key: 'c', className: 'close-btn', onClick: onClose }, '×')
+      ]),
+      h('div', { key: 'sub', style: { fontSize: '0.88rem', color: 'var(--text-muted)', marginBottom: '16px' } }, [
+        'Vehículo: ', h('strong', { key: 'p', style: { color: '#2563eb' } }, contract.plate),
+        ' | Rango: ', h('strong', { key: 'r', style: { color: '#0f172a' } }, week.rangeText)
+      ]),
+      h('div', { key: 'badge-box', style: { marginBottom: '20px', padding: '12px', borderRadius: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' } }, [
+        h('span', { key: 'lbl', style: { fontSize: '0.82rem', color: '#64748b', fontWeight: '700' } }, 'ESTADO ACTUAL:'),
+        h('span', { key: 'badge', className: `status-badge-pill badge-${week.status}` }, 
+          week.status === 'PAGADA' ? '🟢 Pagada' : (week.status === 'PENDIENTE' ? '🟡 Pendiente' : (week.status === 'PAUSA' ? '🔵 Pausa / Libre' : '🔴 En Mora'))
+        )
+      ]),
+
+      h('h4', { key: 'opts-lbl', style: { fontSize: '0.9rem', color: '#0f172a', marginBottom: '12px' } }, 'Seleccione la acción a realizar:'),
+
+      h('div', { key: 'opts-grid', style: { display: 'flex', flexDirection: 'column', gap: '10px' } }, [
+        // OPCIÓN 1: PAGADA (REGISTRAR ABONO Y GENERAR FACTURA)
+        h('button', {
+          key: 'opt-pagada',
+          className: 'btn btn-success',
+          style: { justifyContent: 'flex-start', padding: '12px 16px', height: 'auto', textAlign: 'left' },
+          onClick: () => onSelectAbono(week)
+        }, [
+          h('span', { key: 'ico', style: { fontSize: '1.4rem' } }, '🟢'),
+          h('div', { key: 'txt' }, [
+            h('div', { key: 'title', style: { fontWeight: '800', fontSize: '0.95rem' } }, '1. Marcar como PAGADA (Registrar Abono)'),
+            h('div', { key: 'desc', style: { fontSize: '0.78rem', opacity: 0.9, fontWeight: 'normal' } }, 'Ingresar pago ($200 o editable) y emitir Factura PDF')
+          ])
+        ]),
+
+        // OPCIÓN 2: PAUSA / SEMANA LIBRE ($0.00 - TALLER)
+        h('button', {
+          key: 'opt-pausa',
+          className: 'btn btn-primary',
+          style: { justifyContent: 'flex-start', padding: '12px 16px', height: 'auto', textAlign: 'left' },
+          onClick: () => onSelectPausa(week)
+        }, [
+          h('span', { key: 'ico', style: { fontSize: '1.4rem' } }, '🔵'),
+          h('div', { key: 'txt' }, [
+            h('div', { key: 'title', style: { fontWeight: '800', fontSize: '0.95rem' } }, '2. Marcar PAUSA / SEMANA LIBRE ($0.00)'),
+            h('div', { key: 'desc', style: { fontSize: '0.78rem', opacity: 0.9, fontWeight: 'normal' } }, 'Congelar por taller / mantenimiento sin cobrar mora')
+          ])
+        ]),
+
+        // OPCIÓN 3: PENDIENTE O MORA
+        h('button', {
+          key: 'opt-pendiente',
+          className: 'btn btn-secondary',
+          style: { justifyContent: 'flex-start', padding: '12px 16px', height: 'auto', textAlign: 'left', background: '#fffbeb', color: '#b45309', border: '1px solid #fde68a' },
+          onClick: () => onMarkStatus(week.id, 'PENDIENTE')
+        }, [
+          h('span', { key: 'ico', style: { fontSize: '1.4rem' } }, '🟡'),
+          h('div', { key: 'txt' }, [
+            h('div', { key: 'title', style: { fontWeight: '800', fontSize: '0.95rem' } }, '3. Marcar como PENDIENTE / MORA'),
+            h('div', { key: 'desc', style: { fontSize: '0.78rem', opacity: 0.9, fontWeight: 'normal' } }, 'Revertir estado a cuota pendiente por pagar')
+          ])
+        ]),
+
+        // OPCIÓN 4: VER/RE-EMITIR FACTURA PDF EXISTENTE
+        existingReceipt ? h('button', {
+          key: 'opt-receipt',
+          className: 'btn',
+          style: { justifyContent: 'flex-start', padding: '12px 16px', height: 'auto', textAlign: 'left', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', marginTop: '6px' },
+          onClick: () => onViewReceipt(existingReceipt)
+        }, [
+          h('span', { key: 'ico', style: { fontSize: '1.4rem' } }, '📄'),
+          h('div', { key: 'txt' }, [
+            h('div', { key: 'title', style: { fontWeight: '800', fontSize: '0.95rem' } }, `Ver Factura PDF #${existingReceipt.receiptNumber}`),
+            h('div', { key: 'desc', style: { fontSize: '0.78rem', opacity: 0.9, fontWeight: 'normal' } }, 'Re-emitir o descargar la factura de este abono')
+          ])
+        ]) : null
+      ]),
+
+      h('div', { key: 'acts', style: { display: 'flex', marginTop: '20px' } }, [
+        h('button', { key: 'btn-c', className: 'btn btn-secondary', onClick: onClose }, 'Cerrar')
+      ])
+    ])
+  ]);
+}
+
+// 3. FORMULARIO NUEVO CRÉDITO
 function NewCreditForm({ adminName, onSave, onCancel }) {
   const [plate, setPlate] = useState('');
   const [vehicleModel, setVehicleModel] = useState('');
@@ -362,7 +452,7 @@ function NewCreditForm({ adminName, onSave, onCancel }) {
   ]);
 }
 
-// 3. MODAL DE ABONO EDITABLE
+// 4. MODAL DE ABONO EDITABLE
 function AbonoModal({ week, contract, onClose, onSaveAbono }) {
   const [editableAmount, setEditableAmount] = useState(week.paidAmount > 0 ? week.paidAmount : (week.agreedAmount || 200));
   const [paymentMethod, setPaymentMethod] = useState('Transferencia Bancaria');
@@ -409,7 +499,7 @@ function AbonoModal({ week, contract, onClose, onSaveAbono }) {
   ]);
 }
 
-// 4. MODAL DE PAUSA
+// 5. MODAL DE PAUSA
 function PauseModal({ week, onClose, onSavePausa }) {
   const [reason, setReason] = useState('Mantenimiento en Taller (Frenos y Repuestos)');
 
@@ -439,20 +529,17 @@ function PauseModal({ week, onClose, onSavePausa }) {
   ]);
 }
 
-// 5. MODAL DE FACTURA Y COMPROBANTE OFICIAL COMPLETO DE PAGO EN PDF / IMPRESIÓN
+// 6. MODAL DE FACTURA COMPLETA OFICIAL DE PAGO
 function ReceiptModal({ receipt, onClose }) {
-
-  // GENERADOR ULTRA COMPLETO DE FACTURA PDF SIN RECORTES
   const handleDownloadPDF = () => {
     const originalElem = document.getElementById('printable-receipt');
     if (!originalElem) return;
 
-    // Crear un contenedor temporal de exportación en tamaño A4 nativo
     const exportContainer = document.createElement('div');
     exportContainer.style.position = 'absolute';
     exportContainer.style.left = '-9999px';
     exportContainer.style.top = '0';
-    exportContainer.style.width = '790px'; // Ancho A4 estándar
+    exportContainer.style.width = '790px';
     exportContainer.style.background = '#ffffff';
     exportContainer.style.padding = '30px';
     exportContainer.innerHTML = originalElem.innerHTML;
@@ -493,9 +580,7 @@ function ReceiptModal({ receipt, onClose }) {
         h('button', { key: 'c', className: 'close-btn', onClick: onClose }, '×')
       ]),
 
-      /* ESTRUCTURA COMPLETA DE LA FACTURA A4 */
       h('div', { key: 'pr', id: 'printable-receipt', className: 'receipt-printable' }, [
-        // ENCABEZADO DE LA FACTURA
         h('div', { key: 'rh', className: 'receipt-header' }, [
           h('div', { key: 'logo', style: { fontSize: '2rem', marginBottom: '4px' } }, '🛡️'),
           h('h2', { key: 't1', style: { color: '#0f172a', fontSize: '1.4rem', fontWeight: '800', margin: 0, textTransform: 'uppercase' } }, 'SISTEMA DE FINANCIAMIENTO VEHICULAR'),
@@ -507,7 +592,6 @@ function ReceiptModal({ receipt, onClose }) {
           ])
         ]),
 
-        // SECCIÓN 1 Y 2: DATOS DEL VEHÍCULO Y PARTES DE LA TRANSACCIÓN
         h('div', { key: 'rg1', style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', fontSize: '0.88rem', marginBottom: '16px' } }, [
           h('div', { key: 'box1', style: { border: '1px solid #cbd5e1', padding: '12px 14px', borderRadius: '8px', background: '#ffffff' } }, [
             h('h4', { key: 'b1', style: { color: '#1e3a8a', fontSize: '0.9rem', marginBottom: '6px', borderBottom: '1px solid #e2e8f0', paddingBottom: '4px' } }, '🚘 DATOS DEL VEHÍCULO:'),
@@ -523,7 +607,6 @@ function ReceiptModal({ receipt, onClose }) {
           ])
         ]),
 
-        // SECCIÓN 3: TABLA DE DETALLE DEL ABONO REALIZADO
         h('div', { key: 'rg2', style: { border: '1.5px solid #059669', padding: '16px', borderRadius: '10px', marginBottom: '18px', background: '#ecfdf5' } }, [
           h('h4', { key: 't', style: { color: '#047857', margin: 0, fontSize: '1.05rem', fontWeight: '800' } }, '💰 DETALLE DEL MONTO CANCELADO EN ESTA FACTURA'),
           h('div', { key: 'grid-abono', style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '10px', fontSize: '0.9rem' } }, [
@@ -537,7 +620,6 @@ function ReceiptModal({ receipt, onClose }) {
           ])
         ]),
 
-        // SECCIÓN 4: BALANCE DE CUENTA DEL VEHÍCULO
         h('div', { key: 'rg3', style: { border: '1px solid #cbd5e1', padding: '14px', borderRadius: '8px', marginBottom: '22px', background: '#f8fafc' } }, [
           h('h4', { key: 't', style: { color: '#0f172a', margin: '0 0 8px 0', fontSize: '0.95rem' } }, '📊 ESTADO DE CUENTA ACTUALIZADO DEL VEHÍCULO'),
           h('div', { key: 'bal-grid', style: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', textAlign: 'center', fontSize: '0.88rem' } }, [
@@ -556,12 +638,10 @@ function ReceiptModal({ receipt, onClose }) {
           ])
         ]),
 
-        // SECCIÓN 5: CLÁUSULA DE CONFORMIDAD Y FIRMAS
         h('div', { key: 'terms', style: { fontSize: '0.75rem', color: '#64748b', textAlign: 'center', fontStyle: 'italic', marginBottom: '30px' } }, 
           '* Este documento certifica la recepción conforme del pago realizado. El comprador y vendedor expresan su conformidad con el saldo pendiente registrado.'
         ),
 
-        // SECCIÓN 6: CAJAS DE FIRMAS CONFORMES
         h('div', { key: 'sigs', className: 'receipt-signatures-print' }, [
           h('div', { key: 's1', className: 'signature-box-print' }, [
             h('div', { key: 'spacer', style: { height: '50px' } }),
@@ -580,7 +660,6 @@ function ReceiptModal({ receipt, onClose }) {
         ])
       ]),
 
-      // BOTONES DE ACCIÓN PARA DESCARGAR O IMPRIMIR
       h('div', { key: 'acts', style: { display: 'grid', gridTemplateColumns: '1fr 2fr 1fr', gap: '10px', marginTop: '20px' } }, [
         h('button', { key: 'b1', className: 'btn btn-secondary', onClick: onClose }, 'Cerrar'),
         h('button', { key: 'b2', className: 'btn btn-success', style: { fontSize: '0.92rem' }, onClick: handleDownloadPDF }, '📄 Descargar Factura PDF Completa'),
@@ -590,7 +669,7 @@ function ReceiptModal({ receipt, onClose }) {
   ]);
 }
 
-// 6. DASHBOARD BALANCE CONTABLE
+// 7. DASHBOARD BALANCE CONTABLE
 function FinancialBalanceDashboard({ db }) {
   let totalRecaudado = 0;
   let totalCarteraPendiente = 0;
@@ -647,7 +726,7 @@ function FinancialBalanceDashboard({ db }) {
   ]);
 }
 
-// 7. COMPONENTE PRINCIPAL (APP CON BOTONES MEJOR ORGANIZADOS)
+// 8. COMPONENTE PRINCIPAL (APP CON NAVEGACIÓN Y CONTROL DE SEMANAS)
 function App() {
   const [db, setDb] = useState(loadDB);
   
@@ -666,8 +745,10 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedContractId, setSelectedContractId] = useState('CTR-001');
 
+  // Estados de Modales
   const [selectedWeek, setSelectedWeek] = useState(null);
-  const [showPauseModal, setShowPauseModal] = useState(false);
+  const [activeWeekForAbono, setActiveWeekForAbono] = useState(null);
+  const [activeWeekForPause, setActiveWeekForPause] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [receiptData, setReceiptData] = useState(null);
@@ -753,6 +834,7 @@ function App() {
     localStorage.removeItem(STORAGE_KEY_AUTH);
   };
 
+  // Guardar Abono y Abrir Factura PDF Automáticamente
   const handleSaveAbono = (weekId, editableAmount, paymentMethod) => {
     const numericAmount = Number(editableAmount);
 
@@ -798,10 +880,12 @@ function App() {
 
     updateDatabase(newDb);
     setReceiptData(newReceipt);
-    setShowReceiptModal(true);
+    setActiveWeekForAbono(null);
     setSelectedWeek(null);
+    setShowReceiptModal(true); // Abrir Factura PDF inmediatamente
   };
 
+  // Guardar Pausa
   const handleSavePausa = (weekId, pauseReason) => {
     const updatedWeeks = db.weeklyInstallments.map(w => {
       if (w.id === weekId) {
@@ -816,8 +900,26 @@ function App() {
     });
 
     updateDatabase({ ...db, weeklyInstallments: updatedWeeks });
+    setActiveWeekForPause(null);
     setSelectedWeek(null);
-    setShowPauseModal(false);
+  };
+
+  // Cambiar Estado Directo a Pendiente o Mora
+  const handleMarkStatus = (weekId, newStatus) => {
+    const updatedWeeks = db.weeklyInstallments.map(w => {
+      if (w.id === weekId) {
+        return {
+          ...w,
+          status: newStatus,
+          paidAmount: 0,
+          pauseReason: ''
+        };
+      }
+      return w;
+    });
+
+    updateDatabase({ ...db, weeklyInstallments: updatedWeeks });
+    setSelectedWeek(null);
   };
 
   const handleArchiveContract = (contractId) => {
@@ -961,12 +1063,18 @@ function App() {
               key: 'b-abono',
               className: 'btn btn-success',
               style: { height: '52px', fontSize: '1.02rem' },
-              onClick: () => setSelectedWeek(currentWeeks.find(w => w.status === 'PENDIENTE') || currentWeeks[0])
+              onClick: () => {
+                const targetW = currentWeeks.find(w => w.status === 'PENDIENTE') || currentWeeks[0];
+                setSelectedWeek(targetW);
+              }
             }, '➕ Registrar Abono')
           ]),
 
           h('div', { key: 'row2', className: 'secondary-actions-grid' }, [
-            h('button', { key: 'b-pausa', className: 'btn btn-primary', onClick: () => setShowPauseModal(true) }, '🔵 Marcar Pausa'),
+            h('button', { key: 'b-pausa', className: 'btn btn-primary', onClick: () => {
+              const targetW = currentWeeks.find(w => w.status === 'PENDIENTE') || currentWeeks[0];
+              setActiveWeekForPause(targetW);
+            } }, '🔵 Marcar Pausa'),
             h('button', { key: 'b-archivar', className: 'btn btn-warning', onClick: () => handleArchiveContract(currentContract.id) }, '📦 Archivar / Liquidado')
           ]),
 
@@ -976,13 +1084,13 @@ function App() {
         ])
       ]),
 
-      h('h3', { key: 'wk-t', style: { marginBottom: '14px', color: '#0f172a' } }, 'Calendario de Semanas por Estado'),
+      h('h3', { key: 'wk-t', style: { marginBottom: '14px', color: '#0f172a' } }, 'Calendario de Semanas (Toca cualquier semana para gestionar)'),
       h('div', { key: 'wk-list', className: 'weeks-cards-mobile' }, 
         currentWeeks.map(w => (
           h('div', {
             key: w.id,
             className: `week-card-item status-${w.status}`,
-            onClick: () => setSelectedWeek(w)
+            onClick: () => setSelectedWeek(w) // Al tocar la semana abre el Modal Selector de Acción
           }, [
             h('div', { key: 'l' }, [
               h('strong', { key: 'n', style: { color: '#0f172a', fontSize: '1rem' } }, `Semana ${w.weekNumber}`),
@@ -1030,22 +1138,47 @@ function App() {
     // PESTAÑA 4: BALANCE CONTABLE
     activeTab === 'balance' ? h(FinancialBalanceDashboard, { key: 'tab4', db: db }) : null,
 
-    // MODALES
-    selectedWeek && !showPauseModal ? h(AbonoModal, {
-      key: 'mod-abono',
+    // MODAL SELECTOR AL TOCAR CUALQUIER SEMANA
+    selectedWeek && !activeWeekForAbono && !activeWeekForPause ? h(WeekActionModal, {
+      key: 'mod-week-action',
       week: selectedWeek,
       contract: currentContract,
+      db: db,
       onClose: () => setSelectedWeek(null),
+      onSelectAbono: (w) => {
+        setActiveWeekForAbono(w);
+      },
+      onSelectPausa: (w) => {
+        setActiveWeekForPause(w);
+      },
+      onMarkStatus: (weekId, status) => {
+        handleMarkStatus(weekId, status);
+      },
+      onViewReceipt: (receiptObj) => {
+        setReceiptData(receiptObj);
+        setSelectedWeek(null);
+        setShowReceiptModal(true);
+      }
+    }) : null,
+
+    // MODAL DE ABONO EDITABLE
+    activeWeekForAbono ? h(AbonoModal, {
+      key: 'mod-abono',
+      week: activeWeekForAbono,
+      contract: currentContract,
+      onClose: () => setActiveWeekForAbono(null),
       onSaveAbono: handleSaveAbono
     }) : null,
 
-    showPauseModal ? h(PauseModal, {
+    // MODAL DE PAUSA / SEMANA LIBRE
+    activeWeekForPause ? h(PauseModal, {
       key: 'mod-pause',
-      week: currentWeeks.find(w => w.status === 'PENDIENTE') || currentWeeks[0],
-      onClose: () => setShowPauseModal(false),
+      week: activeWeekForPause,
+      onClose: () => setActiveWeekForPause(null),
       onSavePausa: handleSavePausa
     }) : null,
 
+    // MODAL FACTURA PDF COMPLETA OFICIAL
     showReceiptModal && receiptData ? h(ReceiptModal, {
       key: 'mod-receipt',
       receipt: receiptData,
