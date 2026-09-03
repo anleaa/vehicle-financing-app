@@ -14,9 +14,9 @@ const OFFICIAL_ADMIN = {
   role: 'Administrador Principal'
 };
 
-// Claves de Almacenamiento
+// Claves de Almacenamiento Local
 const STORAGE_KEY_DB = 'vehicle_financing_credit_db_v1';
-const STORAGE_KEY_AUTH = 'vehicle_financing_auth_session_v3';
+const STORAGE_KEY_AUTH = 'vehicle_financing_auth_session_v4';
 
 // Datos de Demostración Iniciales (Semillas)
 const INITIAL_SEED = {
@@ -127,16 +127,16 @@ function createWeeksForContract(contractId, totalWeeks = 60, weeklyRate = 200) {
 
 // Cargar Base de Datos
 function loadDB() {
-  const saved = localStorage.getItem(STORAGE_KEY_DB);
-  if (saved) {
-    try {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY_DB);
+    if (saved) {
       const parsed = JSON.parse(saved);
       if (parsed && Array.isArray(parsed.contracts) && parsed.contracts.length > 0) {
         return parsed;
       }
-    } catch (e) {
-      console.error("Error al cargar la DB:", e);
     }
+  } catch (e) {
+    console.error("Error al cargar la DB:", e);
   }
 
   const db = { ...INITIAL_SEED };
@@ -158,506 +158,13 @@ function loadDB() {
   }
 
   db.weeklyInstallments = weeks;
-  localStorage.setItem(STORAGE_KEY_DB, JSON.stringify(db));
+  try {
+    localStorage.setItem(STORAGE_KEY_DB, JSON.stringify(db));
+  } catch (e) {}
   return db;
 }
 
-// COMPONENTE PRINCIPAL
-function App() {
-  const [db, setDb] = useState(loadDB);
-  
-  // ESTADO DE SESIÓN DEL ADMINISTRADOR (Andres Rebolledo) CON VALIDACIÓN SEGURA
-  const [userSession, setUserSession] = useState(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY_AUTH);
-      if (!saved) return null;
-      const parsed = JSON.parse(saved);
-      return (parsed && typeof parsed === 'object' && parsed.name) ? parsed : null;
-    } catch (e) {
-      return null;
-    }
-  });
-
-  // Navegación Inferior Móvil: 'financiamientos', 'nuevo', 'archivados', 'balance'
-  const [activeTab, setActiveTab] = useState('financiamientos');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedContractId, setSelectedContractId] = useState('CTR-001');
-
-  // Modales
-  const [selectedWeek, setSelectedWeek] = useState(null);
-  const [showPauseModal, setShowPauseModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [showReceiptModal, setShowReceiptModal] = useState(false);
-  const [receiptData, setReceiptData] = useState(null);
-
-  // Sincronización en la Nube con Firebase Firestore / Realtime DB
-  useEffect(() => {
-    if (window.cloudDbService) {
-      window.cloudDbService.subscribeToCloudChanges((cloudData) => {
-        if (cloudData && Array.isArray(cloudData.contracts) && cloudData.contracts.length > 0) {
-          setDb(cloudData);
-        }
-      });
-    }
-  }, []);
-
-  const updateDatabase = (newDb) => {
-    setDb(newDb);
-    if (window.cloudDbService) {
-      window.cloudDbService.syncData(newDb);
-    } else {
-      localStorage.setItem(STORAGE_KEY_DB, JSON.stringify(newDb));
-    }
-  };
-
-  useEffect(() => {
-    if (window.lucide) {
-      window.lucide.createIcons();
-    }
-  });
-
-  // Si no hay sesión iniciada, mostrar la Pantalla de Inicio de Sesión Administrador
-  if (!userSession || typeof userSession !== 'object' || !userSession.name) {
-    return (
-      <LoginScreen 
-        onLoginSuccess={(userData) => {
-          setUserSession(userData);
-          localStorage.setItem(STORAGE_KEY_AUTH, JSON.stringify(userData));
-        }}
-      />
-    );
-  }
-
-  const currentContract = (db && Array.isArray(db.contracts)) 
-    ? (db.contracts.find(c => c.id === selectedContractId) || db.contracts[0])
-    : null;
-
-  const currentWeeks = (currentContract && Array.isArray(db.weeklyInstallments))
-    ? db.weeklyInstallments.filter(w => w.contractId === currentContract.id)
-    : [];
-
-  // Cálculo de Progreso
-  let totalPaid = 0;
-  if (currentContract) {
-    if (currentContract.status === 'ARCHIVED_PAID') {
-      totalPaid = currentContract.totalVehiclePrice;
-    } else {
-      currentWeeks.forEach(w => {
-        if (w.status === 'PAGADA') totalPaid += Number(w.paidAmount || 0);
-      });
-    }
-  }
-
-  const pendingBalance = currentContract ? Math.max(0, currentContract.totalVehiclePrice - totalPaid) : 0;
-  const progressPercent = currentContract ? Math.min(100, Math.round((totalPaid / currentContract.totalVehiclePrice) * 100)) : 0;
-
-  const filteredVehicles = (searchQuery.trim() === '' || !db.contracts) ? [] : db.contracts.filter(c => 
-    c.plate.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.vehicleName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.buyerName.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const handleSelectPlate = (contractId) => {
-    setSelectedContractId(contractId);
-    setSearchQuery('');
-    setActiveTab('financiamientos');
-  };
-
-  const handleLogout = () => {
-    setUserSession(null);
-    localStorage.removeItem(STORAGE_KEY_AUTH);
-  };
-
-  // Registrar Abono Editable
-  const handleSaveAbono = (weekId, editableAmount, paymentMethod) => {
-    const numericAmount = Number(editableAmount);
-
-    const updatedWeeks = db.weeklyInstallments.map(w => {
-      if (w.id === weekId) {
-        return {
-          ...w,
-          status: 'PAGADA',
-          paidAmount: numericAmount,
-          paymentDate: new Date().toISOString().split('T')[0],
-          pauseReason: ''
-        };
-      }
-      return w;
-    });
-
-    const newReceiptNumber = String(db.receipts.length + 1).padStart(4, '0');
-    const targetWeek = db.weeklyInstallments.find(w => w.id === weekId);
-    
-    const newReceipt = {
-      id: `REC-${Date.now()}`,
-      receiptNumber: newReceiptNumber,
-      contractId: currentContract.id,
-      plate: currentContract.plate,
-      vehicleModel: currentContract.vehicleModel,
-      sellerName: userSession.name || OFFICIAL_ADMIN.name,
-      buyerName: currentContract.buyerName,
-      buyerDocument: currentContract.buyerDocument,
-      weekRange: `Semana ${targetWeek.weekNumber} (${targetWeek.rangeText})`,
-      amountPaid: numericAmount,
-      previousBalance: pendingBalance,
-      newBalance: Math.max(0, pendingBalance - numericAmount),
-      paymentMethod,
-      date: new Date().toISOString().split('T')[0],
-      pauseReason: ''
-    };
-
-    const newDb = {
-      ...db,
-      weeklyInstallments: updatedWeeks,
-      receipts: [newReceipt, ...db.receipts]
-    };
-
-    updateDatabase(newDb);
-    setReceiptData(newReceipt);
-    setShowReceiptModal(true);
-    setSelectedWeek(null);
-  };
-
-  // Pausa / Semana Libre ($0.00)
-  const handleSavePausa = (weekId, pauseReason) => {
-    const updatedWeeks = db.weeklyInstallments.map(w => {
-      if (w.id === weekId) {
-        return {
-          ...w,
-          status: 'PAUSA',
-          paidAmount: 0,
-          pauseReason: pauseReason || 'Semana Libre por Taller / Repuestos'
-        };
-      }
-      return w;
-    });
-
-    updateDatabase({ ...db, weeklyInstallments: updatedWeeks });
-    setSelectedWeek(null);
-    setShowPauseModal(false);
-  };
-
-  // Archivar / Liquidar Financiamiento
-  const handleArchiveContract = (contractId) => {
-    const updatedContracts = db.contracts.map(c => c.id === contractId ? { ...c, status: 'ARCHIVED_PAID' } : c);
-    updateDatabase({ ...db, contracts: updatedContracts });
-    alert("🟢 ¡El financiamiento ha sido archivado como 100% Liquidado!");
-  };
-
-  // Borrar Contrato (Privilegio Admin)
-  const handleDeleteContract = (contractId) => {
-    const updatedContracts = db.contracts.filter(c => c.id !== contractId);
-    const updatedWeeks = db.weeklyInstallments.filter(w => w.contractId !== contractId);
-    
-    updateDatabase({
-      ...db,
-      contracts: updatedContracts,
-      weeklyInstallments: updatedWeeks
-    });
-
-    setShowDeleteModal(false);
-    setSelectedContractId(updatedContracts[0]?.id || '');
-  };
-
-  // Crear Nuevo Contrato (Privilegio Admin)
-  const handleCreateContract = (newContractData) => {
-    const newId = `CTR-${Date.now()}`;
-    const fullContract = {
-      id: newId,
-      ...newContractData,
-      sellerName: `${userSession.name || OFFICIAL_ADMIN.name} (Administrador)`,
-      status: 'ACTIVE'
-    };
-
-    const newWeeks = createWeeksForContract(newId, Number(newContractData.totalWeeks), Number(newContractData.weeklyRate));
-
-    const newDb = {
-      ...db,
-      contracts: [fullContract, ...db.contracts],
-      weeklyInstallments: [...db.weeklyInstallments, ...newWeeks]
-    };
-
-    updateDatabase(newDb);
-    setSelectedContractId(newId);
-    setActiveTab('financiamientos');
-  };
-
-  return (
-    <div className="app-container">
-      {/* HEADER PRINCIPAL CON SESIÓN DE ANDRES REBOLLEDO */}
-      <header className="top-header">
-        <div className="brand-section">
-          <div className="brand-title">
-            <i data-lucide="shield-check"></i>
-            <h2>Control Financiamiento Auto</h2>
-          </div>
-
-          <div style={{display:'flex', alignItems:'center', gap:'10px'}}>
-            <div style={{fontSize:'0.82rem', color:'#60a5fa', background:'rgba(59, 130, 246, 0.15)', padding:'6px 12px', borderRadius:'20px', border:'1px solid rgba(59, 130, 246, 0.3)', fontWeight:'600'}}>
-              👤 {userSession.name || OFFICIAL_ADMIN.name}
-            </div>
-            <button className="btn btn-secondary" style={{height:'32px', padding:'0 10px', fontSize:'0.75rem'}} onClick={handleLogout}>
-              Salir
-            </button>
-          </div>
-        </div>
-
-        {/* Buscador Rápido por Placa */}
-        <div className="search-container">
-          <div className="search-input-wrapper">
-            <i data-lucide="search" className="search-icon"></i>
-            <input 
-              type="text" 
-              className="search-input" 
-              placeholder="INGRESAR PLACA O VEHÍCULO (EJ: ABC-999)..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-
-          {filteredVehicles.length > 0 && (
-            <div className="search-results-dropdown">
-              {filteredVehicles.map(c => (
-                <div key={c.id} className="search-result-item" onClick={() => handleSelectPlate(c.id)}>
-                  <div>
-                    <span className="plate-pill">{c.plate}</span>
-                    <strong style={{marginLeft:'8px'}}>{c.vehicleName}</strong>
-                  </div>
-                  <span style={{fontSize:'0.8rem', color:'var(--text-muted)'}}>{c.buyerName}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </header>
-
-      {/* PESTAÑA 1: FINANCIAMIENTOS ACTIVOS */}
-      {activeTab === 'financiamientos' && currentContract && (
-        <section>
-          {/* Selector de Contratos Activos */}
-          <div style={{display:'flex', gap:'8px', overflowX:'auto', paddingBottom:'10px', marginBottom:'16px'}}>
-            {db.contracts.filter(c => c.status === 'ACTIVE').map(c => (
-              <button 
-                key={c.id}
-                onClick={() => setSelectedContractId(c.id)}
-                style={{
-                  background: c.id === selectedContractId ? '#2563eb' : 'var(--bg-card)',
-                  color: c.id === selectedContractId ? '#ffffff' : 'var(--text-muted)',
-                  border: '1px solid var(--border-color)',
-                  padding: '8px 14px',
-                  borderRadius: '20px',
-                  fontWeight: '600',
-                  fontSize: '0.85rem',
-                  whiteSpace: 'nowrap',
-                  cursor: 'pointer'
-                }}
-              >
-                🚘 {c.plate} - {c.vehicleName}
-              </button>
-            ))}
-          </div>
-
-          {/* BARRA DE PROGRESO DE PAGOS */}
-          <div className="progress-card">
-            <div className="progress-header">
-              <span className="plate-pill" style={{fontSize:'1.1rem'}}>{currentContract.plate}</span>
-              <strong style={{color:'#10b981', fontSize:'1.1rem'}}>{progressPercent}% COMPLETADO</strong>
-            </div>
-
-            <div className="progress-bar-container">
-              <div className="progress-bar-fill" style={{width: `${progressPercent}%`}}></div>
-            </div>
-
-            <div className="progress-stats-grid">
-              <div className="progress-stat-box">
-                <div className="progress-stat-label">Costo Total</div>
-                <div className="progress-stat-value" style={{color:'#f8fafc'}}>${currentContract.totalVehiclePrice}</div>
-              </div>
-
-              <div className="progress-stat-box">
-                <div className="progress-stat-label">Total Pagado</div>
-                <div className="progress-stat-value" style={{color:'#10b981'}}>${totalPaid}</div>
-              </div>
-
-              <div className="progress-stat-box">
-                <div className="progress-stat-label">Pendiente</div>
-                <div className="progress-stat-value" style={{color:'#ef4444'}}>${pendingBalance}</div>
-              </div>
-            </div>
-          </div>
-
-          {/* DATOS CLAVE DEL CONTRATO */}
-          <div style={{background:'var(--bg-card)', padding:'16px', borderRadius:'12px', border:'1px solid var(--border-color)', marginBottom:'16px'}}>
-            <h3 style={{fontSize:'1.1rem', marginBottom:'8px'}}>{currentContract.vehicleName} ({currentContract.vehicleModel})</h3>
-            <div style={{fontSize:'0.85rem', color:'var(--text-muted)', display:'flex', flexDirection:'column', gap:'4px'}}>
-              <div>👤 <strong>Comprador / Deudor:</strong> {currentContract.buyerName} (Doc: {currentContract.buyerDocument})</div>
-              <div>🏢 <strong>Vendedor / Dueño:</strong> {currentContract.sellerName}</div>
-              <div>📅 <strong>Plazo de Financiamiento:</strong> {currentContract.totalWeeks} Semanas (~14 meses) | 💰 Abono sugerido: ${currentContract.weeklyRate}/sem</div>
-            </div>
-
-            {/* BOTONES DE ACCIÓN RÁPIDA (PERMISOS ADMIN) */}
-            <div className="vehicle-action-buttons">
-              <button className="btn btn-success" onClick={() => setSelectedWeek(currentWeeks.find(w => w.status === 'PENDIENTE') || currentWeeks[0])}>
-                ➕ Registrar Abono
-              </button>
-              <button className="btn btn-primary" onClick={() => setShowPauseModal(true)}>
-                🔵 Marcar Pausa
-              </button>
-              <button className="btn btn-warning" onClick={() => handleArchiveContract(currentContract.id)}>
-                📦 Archivar / Liquidado
-              </button>
-              <button className="btn btn-danger" onClick={() => setShowDeleteModal(true)}>
-                🗑️ Borrar
-              </button>
-            </div>
-          </div>
-
-          {/* CALENDARIO DE SEMANAS */}
-          <h3 style={{marginBottom:'12px'}}>Calendario de Semanas por Estado</h3>
-          
-          <div className="weeks-cards-mobile">
-            {currentWeeks.map(w => (
-              <div 
-                key={w.id} 
-                className={`week-card-item status-${w.status}`}
-                onClick={() => setSelectedWeek(w)}
-              >
-                <div>
-                  <strong>Semana {w.weekNumber}</strong>
-                  <div style={{fontSize:'0.8rem', color:'var(--text-muted)'}}>{w.rangeText}</div>
-                  {w.status === 'PAUSA' && (
-                    <div style={{fontSize:'0.75rem', color:'#60a5fa', marginTop:'2px'}}>
-                      🛠️ {w.pauseReason}
-                    </div>
-                  )}
-                </div>
-
-                <div style={{textAlign:'right'}}>
-                  <span className={`status-badge-pill badge-${w.status}`}>
-                    {w.status === 'PAGADA' && '🟢 Pagada'}
-                    {w.status === 'PENDIENTE' && '🟡 Pendiente'}
-                    {w.status === 'PAUSA' && '🔵 Pausa / Libre'}
-                    {w.status === 'EN_MORA' && '🔴 En Mora'}
-                  </span>
-                  <div style={{fontWeight:'700', marginTop:'4px'}}>
-                    ${w.status === 'PAGADA' ? w.paidAmount : (w.status === 'PAUSA' ? 0 : w.agreedAmount)} USD
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* PESTAÑA 2: NUEVO CRÉDITO */}
-      {activeTab === 'nuevo' && (
-        <NewCreditForm 
-          adminName={userSession.name || OFFICIAL_ADMIN.name}
-          onSave={handleCreateContract}
-          onCancel={() => setActiveTab('financiamientos')}
-        />
-      )}
-
-      {/* PESTAÑA 3: ARCHIVADOS */}
-      {activeTab === 'archivados' && (
-        <section>
-          <h3 style={{marginBottom:'16px'}}>Contratos Archivados / Liquidados (100% Pagados)</h3>
-          {db.contracts.filter(c => c.status === 'ARCHIVED_PAID').length === 0 ? (
-            <p style={{color:'var(--text-muted)'}}>No hay contratos archivados aún.</p>
-          ) : (
-            <div style={{display:'flex', flexDirection:'column', gap:'12px'}}>
-              {db.contracts.filter(c => c.status === 'ARCHIVED_PAID').map(c => (
-                <div key={c.id} style={{background:'var(--bg-card)', border:'1px solid var(--border-color)', borderRadius:'12px', padding:'16px'}}>
-                  <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-                    <span className="plate-pill">{c.plate}</span>
-                    <span style={{color:'#10b981', fontWeight:'bold', fontSize:'0.85rem'}}>100% LIQUIDADO 🟢</span>
-                  </div>
-                  <h4 style={{marginTop:'8px'}}>{c.vehicleName}</h4>
-                  <div style={{fontSize:'0.85rem', color:'var(--text-muted)', marginTop:'4px'}}>
-                    Comprador: {c.buyerName} | Costo Total: ${c.totalVehiclePrice} USD
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-      )}
-
-      {/* PESTAÑA 4: BALANCE CONTABLE */}
-      {activeTab === 'balance' && (
-        <FinancialBalanceDashboard db={db} />
-      )}
-
-      {/* MODAL DE ABONO (EDITABLE) */}
-      {selectedWeek && !showPauseModal && (
-        <AbonoModal 
-          week={selectedWeek}
-          contract={currentContract}
-          onClose={() => setSelectedWeek(null)}
-          onSaveAbono={handleSaveAbono}
-        />
-      )}
-
-      {/* MODAL DE PAUSA */}
-      {showPauseModal && (
-        <PauseModal 
-          week={currentWeeks.find(w => w.status === 'PENDIENTE') || currentWeeks[0]}
-          onClose={() => setShowPauseModal(false)}
-          onSavePausa={handleSavePausa}
-        />
-      )}
-
-      {/* MODAL COMPROBANTE PDF */}
-      {showReceiptModal && receiptData && (
-        <ReceiptModal 
-          receipt={receiptData}
-          onClose={() => setShowReceiptModal(false)}
-        />
-      )}
-
-      {/* MODAL BORRAR CONTRATO */}
-      {showDeleteModal && (
-        <div className="modal-overlay">
-          <div className="modal-content" style={{maxWidth:'400px'}}>
-            <h3>Confirmar Eliminación</h3>
-            <p style={{marginTop:'10px', color:'var(--text-muted)'}}>
-              ¿Está seguro de que desea borrar permanentemente el contrato del vehículo <strong>{currentContract.plate}</strong>? Esta acción no se puede deshacer.
-            </p>
-            <div style={{display:'flex', gap:'10px', marginTop:'20px'}}>
-              <button className="btn btn-secondary" onClick={() => setShowDeleteModal(false)}>Cancelar</button>
-              <button className="btn btn-danger" onClick={() => handleDeleteContract(currentContract.id)}>Eliminar Definitivamente</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* BARRA DE NAVEGACIÓN INFERIOR MÓVIL */}
-      <nav className="bottom-nav">
-        <button className={`nav-item ${activeTab === 'financiamientos' ? 'active' : ''}`} onClick={() => setActiveTab('financiamientos')}>
-          <i data-lucide="car"></i>
-          <span>Créditos</span>
-        </button>
-
-        <button className={`nav-item ${activeTab === 'nuevo' ? 'active' : ''}`} onClick={() => setActiveTab('nuevo')}>
-          <i data-lucide="plus-circle"></i>
-          <span>Nuevo</span>
-        </button>
-
-        <button className={`nav-item ${activeTab === 'archivados' ? 'active' : ''}`} onClick={() => setActiveTab('archivados')}>
-          <i data-lucide="archive"></i>
-          <span>Archivados</span>
-        </button>
-
-        <button className={`nav-item ${activeTab === 'balance' ? 'active' : ''}`} onClick={() => setActiveTab('balance')}>
-          <i data-lucide="bar-chart-2"></i>
-          <span>Balance</span>
-        </button>
-      </nav>
-    </div>
-  );
-}
-
-// COMPONENTE PANTALLA DE INICIO DE SESIÓN (LOGIN SCREEN)
+// COMPONENTE PANTALLA DE INICIO DE SESIÓN (LOGIN SCREEN PRINCIPAL)
 function LoginScreen({ onLoginSuccess }) {
   const [username, setUsername] = useState('andres.rebolledo');
   const [password, setPassword] = useState('Andres2026!');
@@ -688,8 +195,8 @@ function LoginScreen({ onLoginSuccess }) {
       background: 'radial-gradient(circle at top, #1e293b 0%, #0a0e17 100%)'
     }}>
       <div style={{
-        background: 'var(--bg-card)',
-        border: '1px solid var(--border-color)',
+        background: '#121826',
+        border: '1px solid #243047',
         borderRadius: '24px',
         padding: '28px 24px',
         width: '100%',
@@ -711,8 +218,8 @@ function LoginScreen({ onLoginSuccess }) {
           }}>
             <i data-lucide="shield-check" style={{width:'32px', height:'32px'}}></i>
           </div>
-          <h2 style={{fontSize:'1.4rem', fontWeight:'700'}}>Control Financiamiento Auto</h2>
-          <p style={{fontSize:'0.85rem', color:'var(--text-muted)', marginTop:'4px'}}>
+          <h2 style={{fontSize:'1.4rem', fontWeight:'700', color:'#ffffff'}}>Control Financiamiento Auto</h2>
+          <p style={{fontSize:'0.85rem', color:'#94a3b8', marginTop:'4px'}}>
             Inicio de Sesión Administrador
           </p>
         </div>
@@ -757,13 +264,13 @@ function LoginScreen({ onLoginSuccess }) {
           marginTop: '20px',
           padding: '14px',
           background: 'rgba(255, 255, 255, 0.03)',
-          border: '1px dashed var(--border-color)',
+          border: '1px dashed #243047',
           borderRadius: '12px',
           textAlign: 'center'
         }}>
-          <div style={{fontSize:'0.8rem', color:'var(--text-muted)'}}>CUENTA OFICIAL DE ADMINISTRADOR</div>
+          <div style={{fontSize:'0.8rem', color:'#94a3b8'}}>CUENTA OFICIAL DE ADMINISTRADOR</div>
           <strong style={{fontSize:'0.95rem', color:'#60a5fa', display:'block', marginTop:'2px'}}>👤 {OFFICIAL_ADMIN.name}</strong>
-          <div style={{fontSize:'0.78rem', color:'var(--text-dim)', marginTop:'4px'}}>
+          <div style={{fontSize:'0.78rem', color:'#64748b', marginTop:'4px'}}>
             Usuario: <code>{OFFICIAL_ADMIN.username}</code> | Clave: <code>{OFFICIAL_ADMIN.password}</code>
           </div>
 
@@ -1110,6 +617,497 @@ function FinancialBalanceDashboard({ db }) {
           ))
         )}
       </div>
+    </div>
+  );
+}
+
+// COMPONENTE PRINCIPAL (APP)
+function App() {
+  const [db, setDb] = useState(loadDB);
+  
+  // ESTADO DE SESIÓN DEL ADMINISTRADOR (Andres Rebolledo)
+  const [userSession, setUserSession] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_AUTH);
+      if (!saved) return null;
+      const parsed = JSON.parse(saved);
+      return (parsed && typeof parsed === 'object' && parsed.name) ? parsed : null;
+    } catch (e) {
+      return null;
+    }
+  });
+
+  // Navegación Inferior Móvil: 'financiamientos', 'nuevo', 'archivados', 'balance'
+  const [activeTab, setActiveTab] = useState('financiamientos');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedContractId, setSelectedContractId] = useState('CTR-001');
+
+  // Modales
+  const [selectedWeek, setSelectedWeek] = useState(null);
+  const [showPauseModal, setShowPauseModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [receiptData, setReceiptData] = useState(null);
+
+  // Sincronización Nube
+  useEffect(() => {
+    if (window.cloudDbService) {
+      window.cloudDbService.subscribeToCloudChanges((cloudData) => {
+        if (cloudData && Array.isArray(cloudData.contracts) && cloudData.contracts.length > 0) {
+          setDb(cloudData);
+        }
+      });
+    }
+  }, []);
+
+  const updateDatabase = (newDb) => {
+    setDb(newDb);
+    if (window.cloudDbService) {
+      window.cloudDbService.syncData(newDb);
+    } else {
+      localStorage.setItem(STORAGE_KEY_DB, JSON.stringify(newDb));
+    }
+  };
+
+  useEffect(() => {
+    if (window.lucide) {
+      window.lucide.createIcons();
+    }
+  });
+
+  // PANTALLA DE INICIO OBLIGATORIA SI NO HAY SESIÓN
+  if (!userSession || typeof userSession !== 'object' || !userSession.name) {
+    return (
+      <LoginScreen 
+        onLoginSuccess={(userData) => {
+          setUserSession(userData);
+          try {
+            localStorage.setItem(STORAGE_KEY_AUTH, JSON.stringify(userData));
+          } catch (e) {}
+        }}
+      />
+    );
+  }
+
+  const currentContract = (db && Array.isArray(db.contracts)) 
+    ? (db.contracts.find(c => c.id === selectedContractId) || db.contracts[0])
+    : null;
+
+  const currentWeeks = (currentContract && Array.isArray(db.weeklyInstallments))
+    ? db.weeklyInstallments.filter(w => w.contractId === currentContract.id)
+    : [];
+
+  let totalPaid = 0;
+  if (currentContract) {
+    if (currentContract.status === 'ARCHIVED_PAID') {
+      totalPaid = currentContract.totalVehiclePrice;
+    } else {
+      currentWeeks.forEach(w => {
+        if (w.status === 'PAGADA') totalPaid += Number(w.paidAmount || 0);
+      });
+    }
+  }
+
+  const pendingBalance = currentContract ? Math.max(0, currentContract.totalVehiclePrice - totalPaid) : 0;
+  const progressPercent = currentContract ? Math.min(100, Math.round((totalPaid / currentContract.totalVehiclePrice) * 100)) : 0;
+
+  const filteredVehicles = (searchQuery.trim() === '' || !db.contracts) ? [] : db.contracts.filter(c => 
+    c.plate.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    c.vehicleName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    c.buyerName.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const handleSelectPlate = (contractId) => {
+    setSelectedContractId(contractId);
+    setSearchQuery('');
+    setActiveTab('financiamientos');
+  };
+
+  const handleLogout = () => {
+    setUserSession(null);
+    localStorage.removeItem(STORAGE_KEY_AUTH);
+  };
+
+  // Registrar Abono
+  const handleSaveAbono = (weekId, editableAmount, paymentMethod) => {
+    const numericAmount = Number(editableAmount);
+
+    const updatedWeeks = db.weeklyInstallments.map(w => {
+      if (w.id === weekId) {
+        return {
+          ...w,
+          status: 'PAGADA',
+          paidAmount: numericAmount,
+          paymentDate: new Date().toISOString().split('T')[0],
+          pauseReason: ''
+        };
+      }
+      return w;
+    });
+
+    const newReceiptNumber = String(db.receipts.length + 1).padStart(4, '0');
+    const targetWeek = db.weeklyInstallments.find(w => w.id === weekId);
+    
+    const newReceipt = {
+      id: `REC-${Date.now()}`,
+      receiptNumber: newReceiptNumber,
+      contractId: currentContract.id,
+      plate: currentContract.plate,
+      vehicleModel: currentContract.vehicleModel,
+      sellerName: userSession.name || OFFICIAL_ADMIN.name,
+      buyerName: currentContract.buyerName,
+      buyerDocument: currentContract.buyerDocument,
+      weekRange: `Semana ${targetWeek.weekNumber} (${targetWeek.rangeText})`,
+      amountPaid: numericAmount,
+      previousBalance: pendingBalance,
+      newBalance: Math.max(0, pendingBalance - numericAmount),
+      paymentMethod,
+      date: new Date().toISOString().split('T')[0],
+      pauseReason: ''
+    };
+
+    const newDb = {
+      ...db,
+      weeklyInstallments: updatedWeeks,
+      receipts: [newReceipt, ...db.receipts]
+    };
+
+    updateDatabase(newDb);
+    setReceiptData(newReceipt);
+    setShowReceiptModal(true);
+    setSelectedWeek(null);
+  };
+
+  // Pausa
+  const handleSavePausa = (weekId, pauseReason) => {
+    const updatedWeeks = db.weeklyInstallments.map(w => {
+      if (w.id === weekId) {
+        return {
+          ...w,
+          status: 'PAUSA',
+          paidAmount: 0,
+          pauseReason: pauseReason || 'Semana Libre por Taller / Repuestos'
+        };
+      }
+      return w;
+    });
+
+    updateDatabase({ ...db, weeklyInstallments: updatedWeeks });
+    setSelectedWeek(null);
+    setShowPauseModal(false);
+  };
+
+  // Archivar
+  const handleArchiveContract = (contractId) => {
+    const updatedContracts = db.contracts.map(c => c.id === contractId ? { ...c, status: 'ARCHIVED_PAID' } : c);
+    updateDatabase({ ...db, contracts: updatedContracts });
+    alert("🟢 ¡El financiamiento ha sido archivado como 100% Liquidado!");
+  };
+
+  // Borrar
+  const handleDeleteContract = (contractId) => {
+    const updatedContracts = db.contracts.filter(c => c.id !== contractId);
+    const updatedWeeks = db.weeklyInstallments.filter(w => w.contractId !== contractId);
+    
+    updateDatabase({
+      ...db,
+      contracts: updatedContracts,
+      weeklyInstallments: updatedWeeks
+    });
+
+    setShowDeleteModal(false);
+    setSelectedContractId(updatedContracts[0]?.id || '');
+  };
+
+  // Nuevo Crédito
+  const handleCreateContract = (newContractData) => {
+    const newId = `CTR-${Date.now()}`;
+    const fullContract = {
+      id: newId,
+      ...newContractData,
+      sellerName: `${userSession.name || OFFICIAL_ADMIN.name} (Administrador)`,
+      status: 'ACTIVE'
+    };
+
+    const newWeeks = createWeeksForContract(newId, Number(newContractData.totalWeeks), Number(newContractData.weeklyRate));
+
+    const newDb = {
+      ...db,
+      contracts: [fullContract, ...db.contracts],
+      weeklyInstallments: [...db.weeklyInstallments, ...newWeeks]
+    };
+
+    updateDatabase(newDb);
+    setSelectedContractId(newId);
+    setActiveTab('financiamientos');
+  };
+
+  return (
+    <div className="app-container">
+      {/* HEADER PRINCIPAL */}
+      <header className="top-header">
+        <div className="brand-section">
+          <div className="brand-title">
+            <i data-lucide="shield-check"></i>
+            <h2>Control Financiamiento Auto</h2>
+          </div>
+
+          <div style={{display:'flex', alignItems:'center', gap:'10px'}}>
+            <div style={{fontSize:'0.82rem', color:'#60a5fa', background:'rgba(59, 130, 246, 0.15)', padding:'6px 12px', borderRadius:'20px', border:'1px solid rgba(59, 130, 246, 0.3)', fontWeight:'600'}}>
+              👤 {userSession.name || OFFICIAL_ADMIN.name}
+            </div>
+            <button className="btn btn-secondary" style={{height:'32px', padding:'0 10px', fontSize:'0.75rem'}} onClick={handleLogout}>
+              Salir
+            </button>
+          </div>
+        </div>
+
+        {/* Buscador Rápido por Placa */}
+        <div className="search-container">
+          <div className="search-input-wrapper">
+            <i data-lucide="search" className="search-icon"></i>
+            <input 
+              type="text" 
+              className="search-input" 
+              placeholder="INGRESAR PLACA O VEHÍCULO (EJ: ABC-999)..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+
+          {filteredVehicles.length > 0 && (
+            <div className="search-results-dropdown">
+              {filteredVehicles.map(c => (
+                <div key={c.id} className="search-result-item" onClick={() => handleSelectPlate(c.id)}>
+                  <div>
+                    <span className="plate-pill">{c.plate}</span>
+                    <strong style={{marginLeft:'8px'}}>{c.vehicleName}</strong>
+                  </div>
+                  <span style={{fontSize:'0.8rem', color:'var(--text-muted)'}}>{c.buyerName}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </header>
+
+      {/* PESTAÑA 1: FINANCIAMIENTOS ACTIVOS */}
+      {activeTab === 'financiamientos' && currentContract && (
+        <section>
+          <div style={{display:'flex', gap:'8px', overflowX:'auto', paddingBottom:'10px', marginBottom:'16px'}}>
+            {db.contracts.filter(c => c.status === 'ACTIVE').map(c => (
+              <button 
+                key={c.id}
+                onClick={() => setSelectedContractId(c.id)}
+                style={{
+                  background: c.id === selectedContractId ? '#2563eb' : 'var(--bg-card)',
+                  color: c.id === selectedContractId ? '#ffffff' : 'var(--text-muted)',
+                  border: '1px solid var(--border-color)',
+                  padding: '8px 14px',
+                  borderRadius: '20px',
+                  fontWeight: '600',
+                  fontSize: '0.85rem',
+                  whiteSpace: 'nowrap',
+                  cursor: 'pointer'
+                }}
+              >
+                🚘 {c.plate} - {c.vehicleName}
+              </button>
+            ))}
+          </div>
+
+          <div className="progress-card">
+            <div className="progress-header">
+              <span className="plate-pill" style={{fontSize:'1.1rem'}}>{currentContract.plate}</span>
+              <strong style={{color:'#10b981', fontSize:'1.1rem'}}>{progressPercent}% COMPLETADO</strong>
+            </div>
+
+            <div className="progress-bar-container">
+              <div className="progress-bar-fill" style={{width: `${progressPercent}%`}}></div>
+            </div>
+
+            <div className="progress-stats-grid">
+              <div className="progress-stat-box">
+                <div className="progress-stat-label">Costo Total</div>
+                <div className="progress-stat-value" style={{color:'#f8fafc'}}>${currentContract.totalVehiclePrice}</div>
+              </div>
+
+              <div className="progress-stat-box">
+                <div className="progress-stat-label">Total Pagado</div>
+                <div className="progress-stat-value" style={{color:'#10b981'}}>${totalPaid}</div>
+              </div>
+
+              <div className="progress-stat-box">
+                <div className="progress-stat-label">Pendiente</div>
+                <div className="progress-stat-value" style={{color:'#ef4444'}}>${pendingBalance}</div>
+              </div>
+            </div>
+          </div>
+
+          <div style={{background:'var(--bg-card)', padding:'16px', borderRadius:'12px', border:'1px solid var(--border-color)', marginBottom:'16px'}}>
+            <h3 style={{fontSize:'1.1rem', marginBottom:'8px'}}>{currentContract.vehicleName} ({currentContract.vehicleModel})</h3>
+            <div style={{fontSize:'0.85rem', color:'var(--text-muted)', display:'flex', flexDirection:'column', gap:'4px'}}>
+              <div>👤 <strong>Comprador / Deudor:</strong> {currentContract.buyerName} (Doc: {currentContract.buyerDocument})</div>
+              <div>🏢 <strong>Vendedor / Dueño:</strong> {currentContract.sellerName}</div>
+              <div>📅 <strong>Plazo de Financiamiento:</strong> {currentContract.totalWeeks} Semanas (~14 meses) | 💰 Abono sugerido: ${currentContract.weeklyRate}/sem</div>
+            </div>
+
+            <div className="vehicle-action-buttons">
+              <button className="btn btn-success" onClick={() => setSelectedWeek(currentWeeks.find(w => w.status === 'PENDIENTE') || currentWeeks[0])}>
+                ➕ Registrar Abono
+              </button>
+              <button className="btn btn-primary" onClick={() => setShowPauseModal(true)}>
+                🔵 Marcar Pausa
+              </button>
+              <button className="btn btn-warning" onClick={() => handleArchiveContract(currentContract.id)}>
+                📦 Archivar / Liquidado
+              </button>
+              <button className="btn btn-danger" onClick={() => setShowDeleteModal(true)}>
+                🗑️ Borrar
+              </button>
+            </div>
+          </div>
+
+          <h3 style={{marginBottom:'12px'}}>Calendario de Semanas por Estado</h3>
+          
+          <div className="weeks-cards-mobile">
+            {currentWeeks.map(w => (
+              <div 
+                key={w.id} 
+                className={`week-card-item status-${w.status}`}
+                onClick={() => setSelectedWeek(w)}
+              >
+                <div>
+                  <strong>Semana {w.weekNumber}</strong>
+                  <div style={{fontSize:'0.8rem', color:'var(--text-muted)'}}>{w.rangeText}</div>
+                  {w.status === 'PAUSA' && (
+                    <div style={{fontSize:'0.75rem', color:'#60a5fa', marginTop:'2px'}}>
+                      🛠️ {w.pauseReason}
+                    </div>
+                  )}
+                </div>
+
+                <div style={{textAlign:'right'}}>
+                  <span className={`status-badge-pill badge-${w.status}`}>
+                    {w.status === 'PAGADA' && '🟢 Pagada'}
+                    {w.status === 'PENDIENTE' && '🟡 Pendiente'}
+                    {w.status === 'PAUSA' && '🔵 Pausa / Libre'}
+                    {w.status === 'EN_MORA' && '🔴 En Mora'}
+                  </span>
+                  <div style={{fontWeight:'700', marginTop:'4px'}}>
+                    ${w.status === 'PAGADA' ? w.paidAmount : (w.status === 'PAUSA' ? 0 : w.agreedAmount)} USD
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* PESTAÑA 2: NUEVO CRÉDITO */}
+      {activeTab === 'nuevo' && (
+        <NewCreditForm 
+          adminName={userSession.name || OFFICIAL_ADMIN.name}
+          onSave={handleCreateContract}
+          onCancel={() => setActiveTab('financiamientos')}
+        />
+      )}
+
+      {/* PESTAÑA 3: ARCHIVADOS */}
+      {activeTab === 'archivados' && (
+        <section>
+          <h3 style={{marginBottom:'16px'}}>Contratos Archivados / Liquidados (100% Pagados)</h3>
+          {db.contracts.filter(c => c.status === 'ARCHIVED_PAID').length === 0 ? (
+            <p style={{color:'var(--text-muted)'}}>No hay contratos archivados aún.</p>
+          ) : (
+            <div style={{display:'flex', flexDirection:'column', gap:'12px'}}>
+              {db.contracts.filter(c => c.status === 'ARCHIVED_PAID').map(c => (
+                <div key={c.id} style={{background:'var(--bg-card)', border:'1px solid var(--border-color)', borderRadius:'12px', padding:'16px'}}>
+                  <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+                    <span className="plate-pill">{c.plate}</span>
+                    <span style={{color:'#10b981', fontWeight:'bold', fontSize:'0.85rem'}}>100% LIQUIDADO 🟢</span>
+                  </div>
+                  <h4 style={{marginTop:'8px'}}>{c.vehicleName}</h4>
+                  <div style={{fontSize:'0.85rem', color:'var(--text-muted)', marginTop:'4px'}}>
+                    Comprador: {c.buyerName} | Costo Total: ${c.totalVehiclePrice} USD
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* PESTAÑA 4: BALANCE CONTABLE */}
+      {activeTab === 'balance' && (
+        <FinancialBalanceDashboard db={db} />
+      )}
+
+      {/* MODAL DE ABONO (EDITABLE) */}
+      {selectedWeek && !showPauseModal && (
+        <AbonoModal 
+          week={selectedWeek}
+          contract={currentContract}
+          onClose={() => setSelectedWeek(null)}
+          onSaveAbono={handleSaveAbono}
+        />
+      )}
+
+      {/* MODAL DE PAUSA */}
+      {showPauseModal && (
+        <PauseModal 
+          week={currentWeeks.find(w => w.status === 'PENDIENTE') || currentWeeks[0]}
+          onClose={() => setShowPauseModal(false)}
+          onSavePausa={handleSavePausa}
+        />
+      )}
+
+      {/* MODAL COMPROBANTE PDF */}
+      {showReceiptModal && receiptData && (
+        <ReceiptModal 
+          receipt={receiptData}
+          onClose={() => setShowReceiptModal(false)}
+        />
+      )}
+
+      {/* MODAL BORRAR CONTRATO */}
+      {showDeleteModal && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{maxWidth:'400px'}}>
+            <h3>Confirmar Eliminación</h3>
+            <p style={{marginTop:'10px', color:'var(--text-muted)'}}>
+              ¿Está seguro de que desea borrar permanentemente el contrato del vehículo <strong>{currentContract.plate}</strong>? Esta acción no se puede deshacer.
+            </p>
+            <div style={{display:'flex', gap:'10px', marginTop:'20px'}}>
+              <button className="btn btn-secondary" onClick={() => setShowDeleteModal(false)}>Cancelar</button>
+              <button className="btn btn-danger" onClick={() => handleDeleteContract(currentContract.id)}>Eliminar Definitivamente</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* BARRA DE NAVEGACIÓN INFERIOR MÓVIL */}
+      <nav className="bottom-nav">
+        <button className={`nav-item ${activeTab === 'financiamientos' ? 'active' : ''}`} onClick={() => setActiveTab('financiamientos')}>
+          <i data-lucide="car"></i>
+          <span>Créditos</span>
+        </button>
+
+        <button className={`nav-item ${activeTab === 'nuevo' ? 'active' : ''}`} onClick={() => setActiveTab('nuevo')}>
+          <i data-lucide="plus-circle"></i>
+          <span>Nuevo</span>
+        </button>
+
+        <button className={`nav-item ${activeTab === 'archivados' ? 'active' : ''}`} onClick={() => setActiveTab('archivados')}>
+          <i data-lucide="archive"></i>
+          <span>Archivados</span>
+        </button>
+
+        <button className={`nav-item ${activeTab === 'balance' ? 'active' : ''}`} onClick={() => setActiveTab('balance')}>
+          <i data-lucide="bar-chart-2"></i>
+          <span>Balance</span>
+        </button>
+      </nav>
     </div>
   );
 }

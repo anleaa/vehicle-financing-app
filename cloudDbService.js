@@ -3,7 +3,6 @@
    Sincronización en tiempo real con Firebase Cloud (Realtime DB & Firestore)
    ========================================================================== */
 
-// Credenciales Reales de Firebase de la cuenta del usuario
 const firebaseConfig = {
   apiKey: "AIzaSyCIzNQVHRs--KpHD1bBfsnp7j4Hi9d07HI",
   authDomain: "financiamientoautos-b9878.firebaseapp.com",
@@ -16,14 +15,14 @@ const firebaseConfig = {
 
 const STORAGE_KEY_DB = 'vehicle_financing_credit_db_v1';
 
-const cloudDbService = {
+window.cloudDbService = {
   dbInstance: null,
   rtdbInstance: null,
   isCloudActive: false,
 
   init() {
-    if (window.firebase && window.firebase.apps) {
-      try {
+    try {
+      if (window.firebase && window.firebase.apps) {
         if (!window.firebase.apps.length) {
           window.firebase.initializeApp(firebaseConfig);
         }
@@ -36,61 +35,59 @@ const cloudDbService = {
         }
         
         this.isCloudActive = true;
-        console.log("☁️ Base de Datos Nube Firebase (FinanciamientoAutos) Conectada Exitosamente.");
-      } catch (err) {
-        console.warn("⚠️ Operando con respaldo local debido a:", err);
-        this.isCloudActive = false;
       }
-    } else {
+    } catch (err) {
+      console.warn("⚠️ Operando con respaldo local:", err);
       this.isCloudActive = false;
     }
   },
 
   subscribeToCloudChanges(onDataUpdate) {
-    this.init();
+    try {
+      this.init();
 
-    if (this.rtdbInstance) {
-      const dbRef = this.rtdbInstance.ref('financing_app_data');
-      dbRef.on('value', (snapshot) => {
-        const data = snapshot.val();
-        if (data) {
-          localStorage.setItem(STORAGE_KEY_DB, JSON.stringify(data));
-          onDataUpdate(data);
-        }
-      });
-      return;
-    }
-
-    if (this.dbInstance) {
-      return this.dbInstance.collection("financing_system").doc("app_data")
-        .onSnapshot((doc) => {
-          if (doc.exists) {
-            const data = doc.data();
+      if (this.rtdbInstance) {
+        const dbRef = this.rtdbInstance.ref('financing_app_data');
+        dbRef.on('value', (snapshot) => {
+          const data = snapshot.val();
+          if (data && data.contracts) {
             localStorage.setItem(STORAGE_KEY_DB, JSON.stringify(data));
             onDataUpdate(data);
           }
         });
+        return;
+      }
+
+      if (this.dbInstance) {
+        return this.dbInstance.collection("financing_system").doc("app_data")
+          .onSnapshot((doc) => {
+            if (doc.exists) {
+              const data = doc.data();
+              if (data && data.contracts) {
+                localStorage.setItem(STORAGE_KEY_DB, JSON.stringify(data));
+                onDataUpdate(data);
+              }
+            }
+          });
+      }
+    } catch (e) {
+      console.warn("No se pudo suscribir a la nube:", e);
     }
   },
 
   async syncData(data) {
-    localStorage.setItem(STORAGE_KEY_DB, JSON.stringify(data));
+    try {
+      localStorage.setItem(STORAGE_KEY_DB, JSON.stringify(data));
 
-    if (this.isCloudActive) {
-      try {
+      if (this.isCloudActive) {
         if (this.rtdbInstance) {
           await this.rtdbInstance.ref('financing_app_data').set(data);
-          console.log("☁️ Datos sincronizados con Firebase Realtime DB.");
         } else if (this.dbInstance) {
           await this.dbInstance.collection("financing_system").doc("app_data").set(data, { merge: true });
-          console.log("☁️ Datos sincronizados con Firebase Firestore.");
         }
-      } catch (e) {
-        console.error("Error al sincronizar con la nube:", e);
       }
+    } catch (e) {
+      console.warn("Error al guardar en la nube:", e);
     }
   }
 };
-
-// Asignar al objeto global window para disponibilidad inmediata en el navegador
-window.cloudDbService = cloudDbService;
