@@ -7,37 +7,26 @@
 
   <!-- Hoja de estilos CSS Mobile-First -->
   <link rel="stylesheet" href="styles.css">
+
+  <!-- React 18 & ReactDOM UMD desde cdnjs (CDN de Máxima Velocidad Global) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" crossorigin="anonymous"></script>
 </head>
 <body>
-  <!-- Contenedor con Indicador Visual de Carga Inmediata (Previene Pantalla Negra) -->
-  <div id="root">
-    <div style="min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #0a0e17; color: #f1f5f9; font-family: system-ui, sans-serif; text-align: center; padding: 20px;">
-      <div style="width: 50px; height: 50px; border: 4px solid #1e293b; border-top: 4px solid #3b82f6; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 16px;"></div>
-      <h3 style="font-size: 1.2rem; font-weight: 600; color: #ffffff;">Control Financiamiento Auto</h3>
-      <p style="font-size: 0.85rem; color: #94a3b8; margin-top: 6px;">Cargando sistema...</p>
-      <style>
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-      </style>
-    </div>
-  </div>
+  <!-- Contenedor Principal donde se Renderiza la App -->
+  <div id="root"></div>
 
-  <!-- Carga Asíncrona de React 18 & ReactDOM -->
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <!-- Aplicación React Principal (Carga Instantánea) -->
+  <script src="app.js"></script>
 
-  <!-- Lucide Icons -->
-  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Lucide Icons & HTML2PDF (Carga Secundaria) -->
+  <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" crossorigin="anonymous"></script>
 
-  <!-- HTML2PDF.js para exportar comprobantes en PDF -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-
-  <!-- SDKs de Firebase Nube -->
+  <!-- SDKs de Firebase Nube (Carga Secundaria en Segundo Plano) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-
-  <!-- Servicios y Código de la Aplicación -->
   <script src="cloudDbService.js"></script>
-  <script src="app.js"></script>
 </body>
 </html>

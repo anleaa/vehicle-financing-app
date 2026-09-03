@@ -16,7 +16,7 @@ const OFFICIAL_ADMIN = {
 };
 
 const STORAGE_KEY_DB = 'vehicle_financing_credit_db_v1';
-const STORAGE_KEY_AUTH = 'vehicle_financing_auth_session_v6';
+const STORAGE_KEY_AUTH = 'vehicle_financing_auth_session_v7';
 
 const INITIAL_SEED = {
   contracts: [
@@ -994,7 +994,7 @@ function App() {
   ]);
 }
 
-// INICIALIZACIÓN SEGURA Y DEFENSIVA DEL RENDERIZADO
+// INICIALIZACIÓN SÍNCRONA DE RENDERIZADO INSTANTÁNEO
 function renderApp() {
   const rootElement = document.getElementById('root');
   if (rootElement && window.React && window.ReactDOM) {
@@ -1007,8 +1007,9 @@ function renderApp() {
   }
 }
 
+// Renderizado Inmediato al cargar app.js
+renderApp();
+
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', renderApp);
-} else {
-  renderApp();
 }
