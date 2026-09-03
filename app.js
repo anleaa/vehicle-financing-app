@@ -16,7 +16,7 @@ const OFFICIAL_ADMIN = {
 
 // Claves de Almacenamiento
 const STORAGE_KEY_DB = 'vehicle_financing_credit_db_v1';
-const STORAGE_KEY_AUTH = 'vehicle_financing_auth_session_v2';
+const STORAGE_KEY_AUTH = 'vehicle_financing_auth_session_v3';
 
 // Datos de Demostración Iniciales (Semillas)
 const INITIAL_SEED = {
@@ -130,7 +130,10 @@ function loadDB() {
   const saved = localStorage.getItem(STORAGE_KEY_DB);
   if (saved) {
     try {
-      return JSON.parse(saved);
+      const parsed = JSON.parse(saved);
+      if (parsed && Array.isArray(parsed.contracts) && parsed.contracts.length > 0) {
+        return parsed;
+      }
     } catch (e) {
       console.error("Error al cargar la DB:", e);
     }
@@ -163,10 +166,16 @@ function loadDB() {
 function App() {
   const [db, setDb] = useState(loadDB);
   
-  // ESTADO DE SESIÓN DEL ADMINISTRADOR (Andres Rebolledo)
+  // ESTADO DE SESIÓN DEL ADMINISTRADOR (Andres Rebolledo) CON VALIDACIÓN SEGURA
   const [userSession, setUserSession] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEY_AUTH);
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_AUTH);
+      if (!saved) return null;
+      const parsed = JSON.parse(saved);
+      return (parsed && typeof parsed === 'object' && parsed.name) ? parsed : null;
+    } catch (e) {
+      return null;
+    }
   });
 
   // Navegación Inferior Móvil: 'financiamientos', 'nuevo', 'archivados', 'balance'
@@ -185,7 +194,7 @@ function App() {
   useEffect(() => {
     if (window.cloudDbService) {
       window.cloudDbService.subscribeToCloudChanges((cloudData) => {
-        if (cloudData && cloudData.contracts) {
+        if (cloudData && Array.isArray(cloudData.contracts) && cloudData.contracts.length > 0) {
           setDb(cloudData);
         }
       });
@@ -208,7 +217,7 @@ function App() {
   });
 
   // Si no hay sesión iniciada, mostrar la Pantalla de Inicio de Sesión Administrador
-  if (!userSession) {
+  if (!userSession || typeof userSession !== 'object' || !userSession.name) {
     return (
       <LoginScreen 
         onLoginSuccess={(userData) => {
@@ -219,8 +228,13 @@ function App() {
     );
   }
 
-  const currentContract = db.contracts.find(c => c.id === selectedContractId) || db.contracts[0];
-  const currentWeeks = db.weeklyInstallments.filter(w => w.contractId === selectedContractId);
+  const currentContract = (db && Array.isArray(db.contracts)) 
+    ? (db.contracts.find(c => c.id === selectedContractId) || db.contracts[0])
+    : null;
+
+  const currentWeeks = (currentContract && Array.isArray(db.weeklyInstallments))
+    ? db.weeklyInstallments.filter(w => w.contractId === currentContract.id)
+    : [];
 
   // Cálculo de Progreso
   let totalPaid = 0;
@@ -237,7 +251,7 @@ function App() {
   const pendingBalance = currentContract ? Math.max(0, currentContract.totalVehiclePrice - totalPaid) : 0;
   const progressPercent = currentContract ? Math.min(100, Math.round((totalPaid / currentContract.totalVehiclePrice) * 100)) : 0;
 
-  const filteredVehicles = searchQuery.trim() === '' ? [] : db.contracts.filter(c => 
+  const filteredVehicles = (searchQuery.trim() === '' || !db.contracts) ? [] : db.contracts.filter(c => 
     c.plate.toLowerCase().includes(searchQuery.toLowerCase()) ||
     c.vehicleName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     c.buyerName.toLowerCase().includes(searchQuery.toLowerCase())
@@ -280,7 +294,7 @@ function App() {
       contractId: currentContract.id,
       plate: currentContract.plate,
       vehicleModel: currentContract.vehicleModel,
-      sellerName: userSession.name,
+      sellerName: userSession.name || OFFICIAL_ADMIN.name,
       buyerName: currentContract.buyerName,
       buyerDocument: currentContract.buyerDocument,
       weekRange: `Semana ${targetWeek.weekNumber} (${targetWeek.rangeText})`,
@@ -351,7 +365,7 @@ function App() {
     const fullContract = {
       id: newId,
       ...newContractData,
-      sellerName: `${userSession.name} (Administrador)`,
+      sellerName: `${userSession.name || OFFICIAL_ADMIN.name} (Administrador)`,
       status: 'ACTIVE'
     };
 
@@ -380,7 +394,7 @@ function App() {
 
           <div style={{display:'flex', alignItems:'center', gap:'10px'}}>
             <div style={{fontSize:'0.82rem', color:'#60a5fa', background:'rgba(59, 130, 246, 0.15)', padding:'6px 12px', borderRadius:'20px', border:'1px solid rgba(59, 130, 246, 0.3)', fontWeight:'600'}}>
-              👤 {userSession.name}
+              👤 {userSession.name || OFFICIAL_ADMIN.name}
             </div>
             <button className="btn btn-secondary" style={{height:'32px', padding:'0 10px', fontSize:'0.75rem'}} onClick={handleLogout}>
               Salir
@@ -538,7 +552,7 @@ function App() {
       {/* PESTAÑA 2: NUEVO CRÉDITO */}
       {activeTab === 'nuevo' && (
         <NewCreditForm 
-          adminName={userSession.name}
+          adminName={userSession.name || OFFICIAL_ADMIN.name}
           onSave={handleCreateContract}
           onCancel={() => setActiveTab('financiamientos')}
         />
@@ -1041,20 +1055,26 @@ function FinancialBalanceDashboard({ db }) {
   let totalRecaudado = 0;
   let totalCarteraPendiente = 0;
 
-  db.receipts.forEach(r => {
-    totalRecaudado += Number(r.amountPaid || 0);
-  });
+  if (db && Array.isArray(db.receipts)) {
+    db.receipts.forEach(r => {
+      totalRecaudado += Number(r.amountPaid || 0);
+    });
+  }
 
-  db.contracts.forEach(c => {
-    if (c.status === 'ACTIVE') {
-      const installments = db.weeklyInstallments.filter(w => w.contractId === c.id);
-      let paid = 0;
-      installments.forEach(w => {
-        if (w.status === 'PAGADA') paid += Number(w.paidAmount || 0);
-      });
-      totalCarteraPendiente += Math.max(0, c.totalVehiclePrice - paid);
-    }
-  });
+  if (db && Array.isArray(db.contracts)) {
+    db.contracts.forEach(c => {
+      if (c.status === 'ACTIVE') {
+        const installments = (db.weeklyInstallments && Array.isArray(db.weeklyInstallments)) 
+          ? db.weeklyInstallments.filter(w => w.contractId === c.id) 
+          : [];
+        let paid = 0;
+        installments.forEach(w => {
+          if (w.status === 'PAGADA') paid += Number(w.paidAmount || 0);
+        });
+        totalCarteraPendiente += Math.max(0, c.totalVehiclePrice - paid);
+      }
+    });
+  }
 
   return (
     <div style={{background:'var(--bg-card)', padding:'18px', borderRadius:'16px', border:'1px solid var(--border-color)'}}>
@@ -1074,17 +1094,21 @@ function FinancialBalanceDashboard({ db }) {
 
       <h4>Historial de Comprobantes Emitidos</h4>
       <div style={{display:'flex', flexDirection:'column', gap:'8px', marginTop:'10px'}}>
-        {db.receipts.map(r => (
-          <div key={r.id} style={{background:'var(--bg-card-hover)', padding:'12px', borderRadius:'8px', display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-            <div>
-              <strong>Comprobante #{r.receiptNumber}</strong> - {r.plate}
-              <div style={{fontSize:'0.8rem', color:'var(--text-muted)'}}>{r.buyerName} | Fecha: {r.date}</div>
+        {(!db || !Array.isArray(db.receipts) || db.receipts.length === 0) ? (
+          <p style={{color:'var(--text-muted)', fontSize:'0.85rem'}}>No hay recibos registrados.</p>
+        ) : (
+          db.receipts.map(r => (
+            <div key={r.id} style={{background:'var(--bg-card-hover)', padding:'12px', borderRadius:'8px', display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+              <div>
+                <strong>Comprobante #{r.receiptNumber}</strong> - {r.plate}
+                <div style={{fontSize:'0.8rem', color:'var(--text-muted)'}}>{r.buyerName} | Fecha: {r.date}</div>
+              </div>
+              <div style={{textAlign:'right'}}>
+                <strong style={{color:'#10b981'}}>${r.amountPaid} USD</strong>
+              </div>
             </div>
-            <div style={{textAlign:'right'}}>
-              <strong style={{color:'#10b981'}}>${r.amountPaid} USD</strong>
-            </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
     </div>
   );
