@@ -181,7 +181,7 @@ h1, h2, h3, h4, h5, h6 {
   border: 1px solid #3b82f6;
 }
 
-/* TARJETA DE PROGRESO DE PAGOS (MODO CLARO) */
+/* TARJETA DE PROGRESO DE PAGOS */
 .progress-card {
   background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
   border: 1px solid var(--border-color);
@@ -244,7 +244,7 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 800;
 }
 
-/* ESTRUCTURA ORGANIZADA DE BOTONES DE ACCIÓN (NUEVA ORGANIZACIÓN) */
+/* ESTRUCTURA ORGANIZADA DE BOTONES DE ACCIÓN */
 .action-buttons-wrapper {
   display: flex;
   flex-direction: column;
@@ -342,7 +342,7 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
 }
 
-/* MATRIZ DE SEMANAS (VISTA TARJETAS MÓVILES) */
+/* MATRIZ DE SEMANAS */
 .weeks-cards-mobile {
   display: flex;
   flex-direction: column;
@@ -392,7 +392,7 @@ h1, h2, h3, h4, h5, h6 {
 .badge-PAUSA { background: var(--status-pause-bg); color: var(--status-pause); border: 1px solid #bfdbfe; }
 .badge-EN_MORA { background: var(--status-overdue-bg); color: var(--status-overdue); border: 1px solid #fecaca; }
 
-/* BARRA DE NAVEGACIÓN INFERIOR MÓVIL (STICKY BOTTOM BAR) */
+/* BARRA DE NAVEGACIÓN INFERIOR MÓVIL */
 .bottom-nav {
   position: fixed;
   bottom: 0;
@@ -437,7 +437,7 @@ h1, h2, h3, h4, h5, h6 {
   height: 22px;
 }
 
-/* FORMULARIOS Y ELEMENTOS DE ENTRADA */
+/* FORMULARIOS */
 .form-group {
   margin-bottom: 14px;
 }
@@ -468,7 +468,7 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 
-/* MODALES Y CAPAS SUPERPUESTAS */
+/* MODALES */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -533,20 +533,22 @@ h1, h2, h3, h4, h5, h6 {
   line-height: 1;
 }
 
-/* RECIBO DE IMPRESIÓN PDF */
+/* MAQUETACIÓN PROFESIONAL DE FACTURA / COMPROBANTE EN IMPRESIÓN PDF */
 .receipt-printable {
   background: #ffffff;
   color: #0f172a;
   padding: 24px;
-  border-radius: 8px;
-  font-family: Arial, sans-serif;
+  border-radius: 12px;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .receipt-header {
   text-align: center;
-  border-bottom: 2px solid #0f172a;
-  padding-bottom: 10px;
-  margin-bottom: 14px;
+  border-bottom: 2.5px solid #0f172a;
+  padding-bottom: 14px;
+  margin-bottom: 18px;
 }
 
 .receipt-signatures-print {
@@ -559,8 +561,28 @@ h1, h2, h3, h4, h5, h6 {
 .signature-box-print {
   width: 45%;
   text-align: center;
-  border-top: 1px solid #0f172a;
+  border-top: 1.5px solid #0f172a;
   padding-top: 6px;
   font-size: 0.85rem;
-  font-weight: bold;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+/* ESTILOS DE IMPRESIÓN DIRECTA IMPRESO / PDF DE PÁGINA COMPLETA */
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+  #printable-receipt, #printable-receipt * {
+    visibility: visible !important;
+  }
+  #printable-receipt {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 20px !important;
+  }
 }

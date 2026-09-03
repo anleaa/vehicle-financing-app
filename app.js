@@ -1,6 +1,6 @@
 /* ==========================================================================
    SISTEMA DE GESTIÓN DE FINANCIAMIENTO DE VEHÍCULOS A CRÉDITO Y CONTROL SEMANAL
-   React 18 Native - Modo Claro (Estética Claro High-Contrast)
+   React 18 Native - Generador de Factura Completa en PDF e Impresión
    ========================================================================== */
 
 const { useState, useEffect } = React;
@@ -16,7 +16,7 @@ const OFFICIAL_ADMIN = {
 };
 
 const STORAGE_KEY_DB = 'vehicle_financing_credit_db_v1';
-const STORAGE_KEY_AUTH = 'vehicle_financing_auth_session_v8';
+const STORAGE_KEY_AUTH = 'vehicle_financing_auth_session_v9';
 
 const INITIAL_SEED = {
   contracts: [
@@ -159,7 +159,7 @@ function loadDB() {
   return db;
 }
 
-// 1. PANTALLA DE INICIO DE SESIÓN (MODO CLARO ELEGANTE)
+// 1. PANTALLA DE INICIO DE SESIÓN
 function LoginScreen({ onLoginSuccess }) {
   const [username, setUsername] = useState('andres.rebolledo');
   const [password, setPassword] = useState('Andres2026!');
@@ -403,7 +403,7 @@ function AbonoModal({ week, contract, onClose, onSaveAbono }) {
       ]),
       h('div', { key: 'acts', style: { display: 'flex', gap: '12px', marginTop: '22px' } }, [
         h('button', { key: 'btn-c', className: 'btn btn-secondary', onClick: onClose }, 'Cancelar'),
-        h('button', { key: 'btn-s', className: 'btn btn-success', onClick: () => onSaveAbono(week.id, editableAmount, paymentMethod) }, '💾 Registrar y Emitir PDF')
+        h('button', { key: 'btn-s', className: 'btn btn-success', onClick: () => onSaveAbono(week.id, editableAmount, paymentMethod) }, '💾 Registrar y Emitir Factura PDF')
       ])
     ])
   ]);
@@ -439,74 +439,152 @@ function PauseModal({ week, onClose, onSavePausa }) {
   ]);
 }
 
-// 5. MODAL COMPROBANTE PDF
+// 5. MODAL DE FACTURA Y COMPROBANTE OFICIAL COMPLETO DE PAGO EN PDF / IMPRESIÓN
 function ReceiptModal({ receipt, onClose }) {
+
+  // GENERADOR ULTRA COMPLETO DE FACTURA PDF SIN RECORTES
   const handleDownloadPDF = () => {
-    const element = document.getElementById('printable-receipt');
-    if (!element) return;
+    const originalElem = document.getElementById('printable-receipt');
+    if (!originalElem) return;
+
+    // Crear un contenedor temporal de exportación en tamaño A4 nativo
+    const exportContainer = document.createElement('div');
+    exportContainer.style.position = 'absolute';
+    exportContainer.style.left = '-9999px';
+    exportContainer.style.top = '0';
+    exportContainer.style.width = '790px'; // Ancho A4 estándar
+    exportContainer.style.background = '#ffffff';
+    exportContainer.style.padding = '30px';
+    exportContainer.innerHTML = originalElem.innerHTML;
+    document.body.appendChild(exportContainer);
 
     const opt = {
-      margin: 10,
-      filename: `Comprobante_Abono_${receipt.receiptNumber}_${receipt.plate}.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2 },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      margin:       [10, 10, 10, 10],
+      filename:     `Factura_Oficial_Abono_${receipt.receiptNumber}_${receipt.plate}.pdf`,
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true, scrollY: 0, windowWidth: 800 },
+      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
     if (window.html2pdf) {
-      window.html2pdf().set(opt).from(element).save();
+      window.html2pdf().set(opt).from(exportContainer).save().then(() => {
+        document.body.removeChild(exportContainer);
+      }).catch(err => {
+        console.error("Error html2pdf:", err);
+        document.body.removeChild(exportContainer);
+        window.print();
+      });
     } else {
+      document.body.removeChild(exportContainer);
       window.print();
     }
   };
 
+  const handleNativePrint = () => {
+    window.print();
+  };
+
   return h('div', { className: 'modal-overlay' }, [
-    h('div', { className: 'modal-content', style: { maxWidth: '650px' } }, [
+    h('div', { className: 'modal-content', style: { maxWidth: '720px' } }, [
       h('div', { key: 'mh', className: 'modal-header' }, [
-        h('h3', { key: 't', style: { color: '#0f172a' } }, `Comprobante de Abono #${receipt.receiptNumber}`),
+        h('h3', { key: 't', style: { color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' } }, [
+          '📄 Factura Comprobante de Pago #', receipt.receiptNumber
+        ]),
         h('button', { key: 'c', className: 'close-btn', onClick: onClose }, '×')
       ]),
+
+      /* ESTRUCTURA COMPLETA DE LA FACTURA A4 */
       h('div', { key: 'pr', id: 'printable-receipt', className: 'receipt-printable' }, [
+        // ENCABEZADO DE LA FACTURA
         h('div', { key: 'rh', className: 'receipt-header' }, [
-          h('h2', { key: 't1', style: { color: '#0f172a', margin: 0 } }, 'COMPROBANTE DE ABONO A FINANCIAMIENTO'),
-          h('p', { key: 't2', style: { fontSize: '0.85rem', color: '#475569', margin: '4px 0' } }, [
-            'N° Recibo: ', h('strong', { key: 'rn' }, receipt.receiptNumber), ` | Fecha: ${receipt.date}`
+          h('div', { key: 'logo', style: { fontSize: '2rem', marginBottom: '4px' } }, '🛡️'),
+          h('h2', { key: 't1', style: { color: '#0f172a', fontSize: '1.4rem', fontWeight: '800', margin: 0, textTransform: 'uppercase' } }, 'SISTEMA DE FINANCIAMIENTO VEHICULAR'),
+          h('div', { key: 't2', style: { fontSize: '0.95rem', fontWeight: '700', color: '#2563eb', margin: '4px 0 8px 0', letterSpacing: '0.5px' } }, 'FACTURA COMPROBANTE OFICIAL DE ABONO Y RECIBO DE PAGO'),
+          h('div', { key: 'meta', style: { display: 'flex', justifyContent: 'center', gap: '20px', fontSize: '0.85rem', color: '#475569', background: '#f8fafc', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0' } }, [
+            h('span', { key: 'r' }, ['N° Recibo: ', h('strong', { key: 'rn', style: { color: '#0f172a' } }, `#REC-${receipt.receiptNumber}`)]),
+            h('span', { key: 'd' }, ['Fecha de Emisión: ', h('strong', { key: 'dt', style: { color: '#0f172a' } }, receipt.date)]),
+            h('span', { key: 'st', style: { color: '#059669', fontWeight: 'bold' } }, 'ESTADO: APROBADO 🟢')
           ])
         ]),
-        h('div', { key: 'rg1', style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '0.85rem', marginBottom: '14px' } }, [
-          h('div', { key: 'box1', style: { border: '1px solid #cbd5e1', padding: '10px', borderRadius: '6px' } }, [
-            h('strong', { key: 'b1' }, 'DATOS DEL VEHÍCULO:'),
-            h('div', { key: 'p' }, ['Placa: ', h('strong', { key: 'pl' }, receipt.plate)]),
-            h('div', { key: 'm' }, `Modelo: ${receipt.vehicleModel}`)
+
+        // SECCIÓN 1 Y 2: DATOS DEL VEHÍCULO Y PARTES DE LA TRANSACCIÓN
+        h('div', { key: 'rg1', style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', fontSize: '0.88rem', marginBottom: '16px' } }, [
+          h('div', { key: 'box1', style: { border: '1px solid #cbd5e1', padding: '12px 14px', borderRadius: '8px', background: '#ffffff' } }, [
+            h('h4', { key: 'b1', style: { color: '#1e3a8a', fontSize: '0.9rem', marginBottom: '6px', borderBottom: '1px solid #e2e8f0', paddingBottom: '4px' } }, '🚘 DATOS DEL VEHÍCULO:'),
+            h('div', { key: 'p', style: { marginBottom: '3px' } }, ['Placa de Identificación: ', h('strong', { key: 'pl', style: { color: '#2563eb', fontSize: '1rem' } }, receipt.plate)]),
+            h('div', { key: 'm', style: { marginBottom: '3px' } }, ['Modelo / Marca: ', h('strong', { key: 'mo' }, receipt.vehicleModel)])
           ]),
-          h('div', { key: 'box2', style: { border: '1px solid #cbd5e1', padding: '10px', borderRadius: '6px' } }, [
-            h('strong', { key: 'b2' }, 'DATOS DE LAS PARTES:'),
-            h('div', { key: 'v' }, `Vendedor: ${receipt.sellerName}`),
-            h('div', { key: 'c' }, ['Comprador: ', h('strong', { key: 'bu' }, receipt.buyerName)]),
-            h('div', { key: 'd' }, `Cédula/DNI: ${receipt.buyerDocument}`)
+
+          h('div', { key: 'box2', style: { border: '1px solid #cbd5e1', padding: '12px 14px', borderRadius: '8px', background: '#ffffff' } }, [
+            h('h4', { key: 'b2', style: { color: '#1e3a8a', fontSize: '0.9rem', marginBottom: '6px', borderBottom: '1px solid #e2e8f0', paddingBottom: '4px' } }, '👤 PARTES DEL CONTRATO:'),
+            h('div', { key: 'v', style: { marginBottom: '3px' } }, ['Vendedor / Dueño: ', h('strong', { key: 've' }, receipt.sellerName)]),
+            h('div', { key: 'c', style: { marginBottom: '3px' } }, ['Comprador / Deudor: ', h('strong', { key: 'bu', style: { color: '#0f172a' } }, receipt.buyerName)]),
+            h('div', { key: 'd' }, ['Cédula / Documento: ', h('strong', { key: 'doc' }, receipt.buyerDocument || 'No registrado')])
           ])
         ]),
-        h('div', { key: 'rg2', style: { border: '1px solid #0f172a', padding: '12px', borderRadius: '6px', marginBottom: '16px', background: '#f8fafc' } }, [
-          h('h4', { key: 't', style: { color: '#0f172a', margin: 0 } }, 'RESUMEN FINANCIERO DEL ABONO'),
-          h('div', { key: 'w', style: { marginTop: '6px' } }, ['Semana: ', h('strong', { key: 'wr' }, receipt.weekRange)]),
-          h('div', { key: 'a', style: { fontSize: '1.2rem', fontWeight: 'bold', color: '#059669', marginTop: '6px' } }, `Monto Cancelado: $${receipt.amountPaid} USD (${receipt.paymentMethod})`),
-          h('div', { key: 'prev', style: { marginTop: '6px', fontSize: '0.9rem' } }, `Saldo Anterior: $${receipt.previousBalance} USD`),
-          h('div', { key: 'new', style: { fontWeight: 'bold', color: '#dc2626' } }, `Nuevo Saldo Pendiente: $${receipt.newBalance} USD`)
+
+        // SECCIÓN 3: TABLA DE DETALLE DEL ABONO REALIZADO
+        h('div', { key: 'rg2', style: { border: '1.5px solid #059669', padding: '16px', borderRadius: '10px', marginBottom: '18px', background: '#ecfdf5' } }, [
+          h('h4', { key: 't', style: { color: '#047857', margin: 0, fontSize: '1.05rem', fontWeight: '800' } }, '💰 DETALLE DEL MONTO CANCELADO EN ESTA FACTURA'),
+          h('div', { key: 'grid-abono', style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '10px', fontSize: '0.9rem' } }, [
+            h('div', { key: 'concept' }, ['Concepto: ', h('strong', { key: 'co' }, 'Abono de Cuota Semanal a Crédito')]),
+            h('div', { key: 'week' }, ['Período Cancelado: ', h('strong', { key: 'wr', style: { color: '#0f172a' } }, receipt.weekRange)]),
+            h('div', { key: 'method' }, ['Método de Pago: ', h('strong', { key: 'me' }, receipt.paymentMethod)])
+          ]),
+          h('div', { key: 'big-paid', style: { marginTop: '12px', paddingTop: '10px', borderTop: '1px dashed #a7f3d0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' } }, [
+            h('span', { key: 'l', style: { fontSize: '1rem', fontWeight: '700', color: '#047857' } }, 'MONTO TOTAL PAGADO:'),
+            h('span', { key: 'v', style: { fontSize: '1.6rem', fontWeight: '900', color: '#059669' } }, `$${receipt.amountPaid}.00 USD`)
+          ])
         ]),
+
+        // SECCIÓN 4: BALANCE DE CUENTA DEL VEHÍCULO
+        h('div', { key: 'rg3', style: { border: '1px solid #cbd5e1', padding: '14px', borderRadius: '8px', marginBottom: '22px', background: '#f8fafc' } }, [
+          h('h4', { key: 't', style: { color: '#0f172a', margin: '0 0 8px 0', fontSize: '0.95rem' } }, '📊 ESTADO DE CUENTA ACTUALIZADO DEL VEHÍCULO'),
+          h('div', { key: 'bal-grid', style: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', textAlign: 'center', fontSize: '0.88rem' } }, [
+            h('div', { key: 'prev', style: { background: '#ffffff', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0' } }, [
+              h('div', { key: 'l', style: { color: '#64748b', fontSize: '0.75rem' } }, 'Saldo Anterior'),
+              h('strong', { key: 'v', style: { fontSize: '1.05rem', color: '#0f172a' } }, `$${receipt.previousBalance}.00 USD`)
+            ]),
+            h('div', { key: 'paid', style: { background: '#ffffff', padding: '8px', borderRadius: '6px', border: '1px solid #a7f3d0' } }, [
+              h('div', { key: 'l', style: { color: '#047857', fontSize: '0.75rem' } }, 'Abono Recibido'),
+              h('strong', { key: 'v', style: { fontSize: '1.05rem', color: '#059669' } }, `-$${receipt.amountPaid}.00 USD`)
+            ]),
+            h('div', { key: 'new', style: { background: '#fef2f2', padding: '8px', borderRadius: '6px', border: '1px solid #fecaca' } }, [
+              h('div', { key: 'l', style: { color: '#b91c1c', fontSize: '0.75rem', fontWeight: 'bold' } }, 'NUEVO SALDO PENDIENTE'),
+              h('strong', { key: 'v', style: { fontSize: '1.05rem', color: '#dc2626' } }, `$${receipt.newBalance}.00 USD`)
+            ])
+          ])
+        ]),
+
+        // SECCIÓN 5: CLÁUSULA DE CONFORMIDAD Y FIRMAS
+        h('div', { key: 'terms', style: { fontSize: '0.75rem', color: '#64748b', textAlign: 'center', fontStyle: 'italic', marginBottom: '30px' } }, 
+          '* Este documento certifica la recepción conforme del pago realizado. El comprador y vendedor expresan su conformidad con el saldo pendiente registrado.'
+        ),
+
+        // SECCIÓN 6: CAJAS DE FIRMAS CONFORMES
         h('div', { key: 'sigs', className: 'receipt-signatures-print' }, [
           h('div', { key: 's1', className: 'signature-box-print' }, [
-            h('div', { key: 'spacer', style: { height: '40px' } }),
-            'Firma del Vendedor / Dueño'
+            h('div', { key: 'spacer', style: { height: '50px' } }),
+            h('div', { key: 'line', style: { borderTop: '1.5px solid #0f172a', paddingTop: '4px' } }, [
+              h('div', { key: 'role' }, 'FIRMA VENDEDOR / DUEÑO'),
+              h('div', { key: 'n', style: { fontWeight: 'normal', fontSize: '0.8rem' } }, receipt.sellerName)
+            ])
           ]),
           h('div', { key: 's2', className: 'signature-box-print' }, [
-            h('div', { key: 'spacer', style: { height: '40px' } }),
-            'Firma del Comprador'
+            h('div', { key: 'spacer', style: { height: '50px' } }),
+            h('div', { key: 'line', style: { borderTop: '1.5px solid #0f172a', paddingTop: '4px' } }, [
+              h('div', { key: 'role' }, 'FIRMA COMPRADOR / DEUDOR'),
+              h('div', { key: 'n', style: { fontWeight: 'normal', fontSize: '0.8rem' } }, `${receipt.buyerName} (${receipt.buyerDocument || 'Doc'})`)
+            ])
           ])
         ])
       ]),
-      h('div', { key: 'acts', style: { display: 'flex', gap: '12px', marginTop: '20px' } }, [
+
+      // BOTONES DE ACCIÓN PARA DESCARGAR O IMPRIMIR
+      h('div', { key: 'acts', style: { display: 'grid', gridTemplateColumns: '1fr 2fr 1fr', gap: '10px', marginTop: '20px' } }, [
         h('button', { key: 'b1', className: 'btn btn-secondary', onClick: onClose }, 'Cerrar'),
-        h('button', { key: 'b2', className: 'btn btn-primary', onClick: handleDownloadPDF }, '📄 Descargar Comprobante PDF / Imprimir')
+        h('button', { key: 'b2', className: 'btn btn-success', style: { fontSize: '0.92rem' }, onClick: handleDownloadPDF }, '📄 Descargar Factura PDF Completa'),
+        h('button', { key: 'b3', className: 'btn btn-primary', style: { fontSize: '0.85rem' }, onClick: handleNativePrint }, '🖨️ Imprimir')
       ])
     ])
   ]);
@@ -869,7 +947,6 @@ function App() {
         ])
       ]),
 
-      // DATOS Y ESTRUCTURA ORGANIZADA DE BOTONES DE ACCIÓN
       h('div', { key: 'det', style: { background: 'var(--bg-card)', padding: '20px', borderRadius: '16px', border: '1px solid var(--border-color)', marginBottom: '18px', boxShadow: 'var(--shadow-md)' } }, [
         h('h3', { key: 't', style: { fontSize: '1.2rem', marginBottom: '8px', color: '#0f172a' } }, `${currentContract.vehicleName} (${currentContract.vehicleModel})`),
         h('div', { key: 'info', style: { fontSize: '0.88rem', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '18px' } }, [
@@ -878,9 +955,7 @@ function App() {
           h('div', { key: 'p' }, ['📅 ', h('strong', { key: 's' }, 'Plazo: '), `${currentContract.totalWeeks} Semanas (~14 meses) | 💰 Abono sugerido: $${currentContract.weeklyRate}/sem`])
         ]),
 
-        // NUEVA ESTRUCTURA LIMPIA Y ORGANIZADA DE BOTONES
         h('div', { key: 'acts-wrapper', className: 'action-buttons-wrapper' }, [
-          // Acciones Principales
           h('div', { key: 'row1', className: 'primary-action-row' }, [
             h('button', {
               key: 'b-abono',
@@ -890,13 +965,11 @@ function App() {
             }, '➕ Registrar Abono')
           ]),
 
-          // Acciones Secundarias (Pausa y Archivar)
           h('div', { key: 'row2', className: 'secondary-actions-grid' }, [
             h('button', { key: 'b-pausa', className: 'btn btn-primary', onClick: () => setShowPauseModal(true) }, '🔵 Marcar Pausa'),
             h('button', { key: 'b-archivar', className: 'btn btn-warning', onClick: () => handleArchiveContract(currentContract.id) }, '📦 Archivar / Liquidado')
           ]),
 
-          // Acción Peligrosa (Borrar separado con borde rojo)
           h('div', { key: 'row3', className: 'danger-action-row' }, [
             h('button', { key: 'b-borrar', className: 'btn btn-danger-outline', onClick: () => setShowDeleteModal(true) }, '🗑️ Borrar')
           ])
