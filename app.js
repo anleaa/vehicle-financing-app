@@ -3,8 +3,8 @@
    React 18 Native (Sin compiladores externos - Carga Instantánea Garantizada)
    ========================================================================== */
 
-const { useState, useEffect, useRef } = React;
-const h = React.createElement; // Taquigrafía para React.createElement
+const { useState, useEffect } = React;
+const h = React.createElement;
 
 // CREDENCIALES OFICIALES DE ADMINISTRADOR
 const OFFICIAL_ADMIN = {
@@ -15,11 +15,9 @@ const OFFICIAL_ADMIN = {
   role: 'Administrador Principal'
 };
 
-// Claves de Almacenamiento Local
 const STORAGE_KEY_DB = 'vehicle_financing_credit_db_v1';
-const STORAGE_KEY_AUTH = 'vehicle_financing_auth_session_v5';
+const STORAGE_KEY_AUTH = 'vehicle_financing_auth_session_v6';
 
-// Datos de Demostración Iniciales (Semillas)
 const INITIAL_SEED = {
   contracts: [
     {
@@ -75,7 +73,6 @@ const INITIAL_SEED = {
   ]
 };
 
-// Generador de Semanas de Financiamiento
 function createWeeksForContract(contractId, totalWeeks = 60, weeklyRate = 200) {
   const weeks = [];
   const startOfYear = new Date(2026, 0, 5);
@@ -126,7 +123,6 @@ function createWeeksForContract(contractId, totalWeeks = 60, weeklyRate = 200) {
   return weeks;
 }
 
-// Cargar Base de Datos
 function loadDB() {
   try {
     const saved = localStorage.getItem(STORAGE_KEY_DB);
@@ -163,7 +159,7 @@ function loadDB() {
   return db;
 }
 
-// 1. COMPONENTE PANTALLA DE INICIO DE SESIÓN (LOGIN SCREEN PRINCIPAL)
+// 1. PANTALLA DE INICIO DE SESIÓN (LOGIN SCREEN PRINCIPAL)
 function LoginScreen({ onLoginSuccess }) {
   const [username, setUsername] = useState('andres.rebolledo');
   const [password, setPassword] = useState('Andres2026!');
@@ -218,9 +214,10 @@ function LoginScreen({ onLoginSuccess }) {
             background: 'rgba(59, 130, 246, 0.15)',
             border: '2px solid #3b82f6',
             color: '#3b82f6',
-            marginBottom: '12px'
+            marginBottom: '12px',
+            fontSize: '1.8rem'
           }
-        }, h('i', { 'data-lucide': 'shield-check', style: { width: '32px', height: '32px' } })),
+        }, '🛡️'),
         h('h2', { key: 'title', style: { fontSize: '1.4rem', fontWeight: '700', color: '#ffffff' } }, 'Control Financiamiento Auto'),
         h('p', { key: 'sub', style: { fontSize: '0.85rem', color: '#94a3b8', marginTop: '4px' } }, 'Inicio de Sesión Administrador')
       ]),
@@ -597,28 +594,34 @@ function App() {
   const [receiptData, setReceiptData] = useState(null);
 
   useEffect(() => {
-    if (window.cloudDbService) {
-      window.cloudDbService.subscribeToCloudChanges((cloudData) => {
-        if (cloudData && Array.isArray(cloudData.contracts) && cloudData.contracts.length > 0) {
-          setDb(cloudData);
-        }
-      });
-    }
+    try {
+      if (window.cloudDbService) {
+        window.cloudDbService.subscribeToCloudChanges((cloudData) => {
+          if (cloudData && Array.isArray(cloudData.contracts) && cloudData.contracts.length > 0) {
+            setDb(cloudData);
+          }
+        });
+      }
+    } catch (e) {}
   }, []);
 
   const updateDatabase = (newDb) => {
     setDb(newDb);
-    if (window.cloudDbService) {
-      window.cloudDbService.syncData(newDb);
-    } else {
-      localStorage.setItem(STORAGE_KEY_DB, JSON.stringify(newDb));
-    }
+    try {
+      if (window.cloudDbService) {
+        window.cloudDbService.syncData(newDb);
+      } else {
+        localStorage.setItem(STORAGE_KEY_DB, JSON.stringify(newDb));
+      }
+    } catch (e) {}
   };
 
   useEffect(() => {
-    if (window.lucide) {
-      window.lucide.createIcons();
-    }
+    try {
+      if (window.lucide && typeof window.lucide.createIcons === 'function') {
+        window.lucide.createIcons();
+      }
+    } catch(e) {}
   });
 
   // SI NO HAY SESIÓN INICIADA: RENDERIZAR LOGIN SCREEN
@@ -991,9 +994,21 @@ function App() {
   ]);
 }
 
-// RENDERIZADO PRINCIPAL NATIVO
-const rootElement = document.getElementById('root');
-if (rootElement) {
-  const root = ReactDOM.createRoot(rootElement);
-  root.render(React.createElement(App));
+// INICIALIZACIÓN SEGURA Y DEFENSIVA DEL RENDERIZADO
+function renderApp() {
+  const rootElement = document.getElementById('root');
+  if (rootElement && window.React && window.ReactDOM) {
+    try {
+      const root = ReactDOM.createRoot(rootElement);
+      root.render(React.createElement(App));
+    } catch(err) {
+      console.error("Error al renderizar la App:", err);
+    }
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', renderApp);
+} else {
+  renderApp();
 }

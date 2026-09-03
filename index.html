@@ -7,29 +7,37 @@
 
   <!-- Hoja de estilos CSS Mobile-First -->
   <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Contenedor con Indicador Visual de Carga Inmediata (Previene Pantalla Negra) -->
+  <div id="root">
+    <div style="min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #0a0e17; color: #f1f5f9; font-family: system-ui, sans-serif; text-align: center; padding: 20px;">
+      <div style="width: 50px; height: 50px; border: 4px solid #1e293b; border-top: 4px solid #3b82f6; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 16px;"></div>
+      <h3 style="font-size: 1.2rem; font-weight: 600; color: #ffffff;">Control Financiamiento Auto</h3>
+      <p style="font-size: 0.85rem; color: #94a3b8; margin-top: 6px;">Cargando sistema...</p>
+      <style>
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+      </style>
+    </div>
+  </div>
 
-  <!-- React 18 & ReactDOM UMD -->
+  <!-- Carga Asíncrona de React 18 & ReactDOM -->
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
 
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
 
-  <!-- HTML2PDF.js para generación e impresión de comprobantes en PDF -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <!-- HTML2PDF.js para exportar comprobantes en PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
-  <!-- SDKs de Firebase (App, Realtime DB y Firestore Compat) -->
+  <!-- SDKs de Firebase Nube -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
-  <!-- Servicio de Base de Datos Nube -->
+  <!-- Servicios y Código de la Aplicación -->
   <script src="cloudDbService.js"></script>
-</head>
-<body>
-  <div id="root"></div>
-
-  <!-- Script nativo de la aplicación React (sin dependencias de transpilación) -->
   <script src="app.js"></script>
 </body>
 </html>
