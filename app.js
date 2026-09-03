@@ -1,13 +1,24 @@
 /* ==========================================================================
    SISTEMA DE GESTIÓN DE FINANCIAMIENTO DE VEHÍCULOS A CRÉDITO Y CONTROL SEMANAL
-   React 18 + Babel Standalone + HTML2PDF + Lucide Icons
+   React 18 + Firebase Cloud Sync + Admin Andres Rebolledo
    ========================================================================== */
 
-const { useState, useEffect, useRef } = React;
+import { cloudDbService } from './cloudDbService.js';
 
-// Claves de Almacenamiento Local
+const { useState, useEffect } = React;
+
+// Claves de Almacenamiento
 const STORAGE_KEY_DB = 'vehicle_financing_credit_db_v1';
-const STORAGE_KEY_AUTH = 'vehicle_financing_auth_session';
+const STORAGE_KEY_AUTH = 'vehicle_financing_auth_session_v2';
+
+// CREDENCIALES OFICIALES DE ADMINISTRADOR
+const OFFICIAL_ADMIN = {
+  name: 'Andres Rebolledo',
+  username: 'andres.rebolledo',
+  altUsername: 'andres',
+  password: 'Andres2026!',
+  role: 'Administrador Principal'
+};
 
 // Datos de Demostración Iniciales (Semillas)
 const INITIAL_SEED = {
@@ -17,22 +28,22 @@ const INITIAL_SEED = {
       plate: 'ABC-999',
       vehicleModel: 'Toyota Corolla Cross',
       vehicleName: 'Corolla Cross 2022',
-      sellerName: 'Lic. Roberto Silva (Vendedor)',
+      sellerName: 'Andres Rebolledo (Administrador)',
       buyerName: 'Juan Carlos Rodríguez',
       buyerDocument: 'V-19.823.411',
       buyerPhone: '+58 412-888-9900',
-      totalVehiclePrice: 12000, // $12,000 USD
-      weeklyRate: 200,          // Abono sugerido $200 USD
-      totalWeeks: 60,           // 60 semanas (~14 meses)
+      totalVehiclePrice: 12000,
+      weeklyRate: 200,
+      totalWeeks: 60,
       startDate: '2026-01-05',
-      status: 'ACTIVE'          // 'ACTIVE', 'ARCHIVED_PAID'
+      status: 'ACTIVE'
     },
     {
       id: 'CTR-002',
       plate: 'XYZ-111',
       vehicleModel: 'Nissan Sentra Exclusive',
       vehicleName: 'Sentra 2020 (Liquidado 100%)',
-      sellerName: 'Lic. Roberto Silva (Vendedor)',
+      sellerName: 'Andres Rebolledo (Administrador)',
       buyerName: 'Ana María Martínez',
       buyerDocument: 'V-21.094.122',
       buyerPhone: '+58 414-777-1122',
@@ -51,11 +62,11 @@ const INITIAL_SEED = {
       contractId: 'CTR-001',
       plate: 'ABC-999',
       vehicleModel: 'Toyota Corolla Cross',
-      sellerName: 'Lic. Roberto Silva (Vendedor)',
+      sellerName: 'Andres Rebolledo (Administrador)',
       buyerName: 'Juan Carlos Rodríguez',
       buyerDocument: 'V-19.823.411',
       weekRange: 'Semana 7 (16 Feb - 22 Feb)',
-      amountPaid: 250, // Abono editable
+      amountPaid: 250,
       previousBalance: 10750,
       newBalance: 10500,
       paymentMethod: 'Transferencia Bancaria',
@@ -92,7 +103,7 @@ function createWeeksForContract(contractId, totalWeeks = 60, weeklyRate = 200) {
       pauseReason = 'Mantenimiento en Taller (Frenos y Repuestos) - Semana Libre';
     } else if (i === 7) {
       status = 'PAGADA';
-      paidAmount = 250; // Abono editable extraordinario
+      paidAmount = 250;
     } else if (i === 8) {
       status = 'EN_MORA';
       paidAmount = 0;
@@ -105,7 +116,7 @@ function createWeeksForContract(contractId, totalWeeks = 60, weeklyRate = 200) {
       rangeText,
       startDate: s.toISOString().split('T')[0],
       endDate: e.toISOString().split('T')[0],
-      status, // 'PAGADA', 'PENDIENTE', 'PAUSA', 'EN_MORA'
+      status,
       agreedAmount: weeklyRate,
       paidAmount,
       pauseReason,
@@ -116,7 +127,7 @@ function createWeeksForContract(contractId, totalWeeks = 60, weeklyRate = 200) {
   return weeks;
 }
 
-// Cargar Base de Datos
+// Cargar Base de Datos con Respaldo Nube
 function loadDB() {
   const saved = localStorage.getItem(STORAGE_KEY_DB);
   if (saved) {
@@ -127,14 +138,10 @@ function loadDB() {
     }
   }
 
-  // Inicializar semanas
   const db = { ...INITIAL_SEED };
   let weeks = [];
-  
-  // Semanas Contrato 1
   weeks = weeks.concat(createWeeksForContract('CTR-001', 60, 200));
 
-  // Semanas Contrato 2 (Liquidado)
   for (let i = 1; i <= 40; i++) {
     weeks.push({
       id: `W-CTR-002-${i}`,
@@ -157,42 +164,61 @@ function loadDB() {
 // COMPONENTE PRINCIPAL
 function App() {
   const [db, setDb] = useState(loadDB);
-  const [userSession, setUserSession] = useState(() => localStorage.getItem(STORAGE_KEY_AUTH) || 'admin');
-  const [showLoginModal, setShowLoginModal] = useState(!userSession);
-
-  // Navegación Inferior (Bottom Bar Navigation)
-  // 'financiamientos', 'buscar', 'nuevo', 'archivados', 'balance'
-  const [activeTab, setActiveTab] = useState('financiamientos');
   
-  // Estado de Búsqueda y Selección de Contrato
+  // ESTADO DE SESIÓN DEL ADMINISTRADOR (Andres Rebolledo)
+  const [userSession, setUserSession] = useState(() => {
+    const saved = localStorage.getItem(STORAGE_KEY_AUTH);
+    return saved ? JSON.parse(saved) : null;
+  });
+
+  // Navegación Inferior Móvil: 'financiamientos', 'nuevo', 'archivados', 'balance'
+  const [activeTab, setActiveTab] = useState('financiamientos');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedContractId, setSelectedContractId] = useState('CTR-001');
 
   // Modales
   const [selectedWeek, setSelectedWeek] = useState(null);
-  const [showNewCreditModal, setShowNewCreditModal] = useState(false);
   const [showPauseModal, setShowPauseModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [receiptData, setReceiptData] = useState(null);
 
-  // Guardar cambios en LocalStorage automáticamente
+  // Sincronización en la Nube con Firebase Firestore
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_DB, JSON.stringify(db));
-  }, [db]);
+    cloudDbService.subscribeToCloudChanges((cloudData) => {
+      if (cloudData && cloudData.contracts) {
+        setDb(cloudData);
+      }
+    });
+  }, []);
 
-  // Actualizar Iconos Lucide
+  const updateDatabase = (newDb) => {
+    setDb(newDb);
+    cloudDbService.syncData(newDb);
+  };
+
   useEffect(() => {
     if (window.lucide) {
       window.lucide.createIcons();
     }
   });
 
-  // Contrato activo seleccionado
+  // Si no hay sesión iniciada, mostrar la Pantalla de Inicio de Sesión Administrador
+  if (!userSession) {
+    return (
+      <LoginScreen 
+        onLoginSuccess={(userData) => {
+          setUserSession(userData);
+          localStorage.setItem(STORAGE_KEY_AUTH, JSON.stringify(userData));
+        }}
+      />
+    );
+  }
+
   const currentContract = db.contracts.find(c => c.id === selectedContractId) || db.contracts[0];
   const currentWeeks = db.weeklyInstallments.filter(w => w.contractId === selectedContractId);
 
-  // Cálculo de Progreso Financiero del Contrato Actual
+  // Cálculo de Progreso
   let totalPaid = 0;
   if (currentContract) {
     if (currentContract.status === 'ARCHIVED_PAID') {
@@ -207,7 +233,6 @@ function App() {
   const pendingBalance = currentContract ? Math.max(0, currentContract.totalVehiclePrice - totalPaid) : 0;
   const progressPercent = currentContract ? Math.min(100, Math.round((totalPaid / currentContract.totalVehiclePrice) * 100)) : 0;
 
-  // Búsqueda por Placa o Modelo
   const filteredVehicles = searchQuery.trim() === '' ? [] : db.contracts.filter(c => 
     c.plate.toLowerCase().includes(searchQuery.toLowerCase()) ||
     c.vehicleName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -220,144 +245,143 @@ function App() {
     setActiveTab('financiamientos');
   };
 
-  // Registrar un Abono con Monto Editable
+  const handleLogout = () => {
+    setUserSession(null);
+    localStorage.removeItem(STORAGE_KEY_AUTH);
+  };
+
+  // Registrar Abono Editable
   const handleSaveAbono = (weekId, editableAmount, paymentMethod) => {
     const numericAmount = Number(editableAmount);
 
-    setDb(prevDb => {
-      const updatedWeeks = prevDb.weeklyInstallments.map(w => {
-        if (w.id === weekId) {
-          return {
-            ...w,
-            status: 'PAGADA',
-            paidAmount: numericAmount,
-            paymentDate: new Date().toISOString().split('T')[0],
-            pauseReason: ''
-          };
-        }
-        return w;
-      });
-
-      // Crear Recibo
-      const newReceiptNumber = String(prevDb.receipts.length + 1).padStart(4, '0');
-      const targetWeek = prevDb.weeklyInstallments.find(w => w.id === weekId);
-      
-      const newReceipt = {
-        id: `REC-${Date.now()}`,
-        receiptNumber: newReceiptNumber,
-        contractId: currentContract.id,
-        plate: currentContract.plate,
-        vehicleModel: currentContract.vehicleModel,
-        sellerName: currentContract.sellerName,
-        buyerName: currentContract.buyerName,
-        buyerDocument: currentContract.buyerDocument,
-        weekRange: `Semana ${targetWeek.weekNumber} (${targetWeek.rangeText})`,
-        amountPaid: numericAmount,
-        previousBalance: pendingBalance,
-        newBalance: Math.max(0, pendingBalance - numericAmount),
-        paymentMethod,
-        date: new Date().toISOString().split('T')[0],
-        pauseReason: ''
-      };
-
-      setReceiptData(newReceipt);
-      setShowReceiptModal(true);
-
-      return {
-        ...prevDb,
-        weeklyInstallments: updatedWeeks,
-        receipts: [newReceipt, ...prevDb.receipts]
-      };
+    const updatedWeeks = db.weeklyInstallments.map(w => {
+      if (w.id === weekId) {
+        return {
+          ...w,
+          status: 'PAGADA',
+          paidAmount: numericAmount,
+          paymentDate: new Date().toISOString().split('T')[0],
+          pauseReason: ''
+        };
+      }
+      return w;
     });
 
+    const newReceiptNumber = String(db.receipts.length + 1).padStart(4, '0');
+    const targetWeek = db.weeklyInstallments.find(w => w.id === weekId);
+    
+    const newReceipt = {
+      id: `REC-${Date.now()}`,
+      receiptNumber: newReceiptNumber,
+      contractId: currentContract.id,
+      plate: currentContract.plate,
+      vehicleModel: currentContract.vehicleModel,
+      sellerName: userSession.name,
+      buyerName: currentContract.buyerName,
+      buyerDocument: currentContract.buyerDocument,
+      weekRange: `Semana ${targetWeek.weekNumber} (${targetWeek.rangeText})`,
+      amountPaid: numericAmount,
+      previousBalance: pendingBalance,
+      newBalance: Math.max(0, pendingBalance - numericAmount),
+      paymentMethod,
+      date: new Date().toISOString().split('T')[0],
+      pauseReason: ''
+    };
+
+    const newDb = {
+      ...db,
+      weeklyInstallments: updatedWeeks,
+      receipts: [newReceipt, ...db.receipts]
+    };
+
+    updateDatabase(newDb);
+    setReceiptData(newReceipt);
+    setShowReceiptModal(true);
     setSelectedWeek(null);
   };
 
-  // Marcar Pausa / Semana Libre ($0.00 por taller/repuestos)
+  // Pausa / Semana Libre ($0.00)
   const handleSavePausa = (weekId, pauseReason) => {
-    setDb(prevDb => {
-      const updatedWeeks = prevDb.weeklyInstallments.map(w => {
-        if (w.id === weekId) {
-          return {
-            ...w,
-            status: 'PAUSA',
-            paidAmount: 0,
-            pauseReason: pauseReason || 'Semana Libre por Taller / Repuestos'
-          };
-        }
-        return w;
-      });
-
-      return {
-        ...prevDb,
-        weeklyInstallments: updatedWeeks
-      };
+    const updatedWeeks = db.weeklyInstallments.map(w => {
+      if (w.id === weekId) {
+        return {
+          ...w,
+          status: 'PAUSA',
+          paidAmount: 0,
+          pauseReason: pauseReason || 'Semana Libre por Taller / Repuestos'
+        };
+      }
+      return w;
     });
 
+    updateDatabase({ ...db, weeklyInstallments: updatedWeeks });
     setSelectedWeek(null);
     setShowPauseModal(false);
   };
 
-  // Archivar / Finalizar Crédito al 100%
+  // Archivar / Liquidar Financiamiento
   const handleArchiveContract = (contractId) => {
-    setDb(prevDb => ({
-      ...prevDb,
-      contracts: prevDb.contracts.map(c => c.id === contractId ? { ...c, status: 'ARCHIVED_PAID' } : c)
-    }));
+    const updatedContracts = db.contracts.map(c => c.id === contractId ? { ...c, status: 'ARCHIVED_PAID' } : c);
+    updateDatabase({ ...db, contracts: updatedContracts });
     alert("🟢 ¡El financiamiento ha sido archivado como 100% Liquidado!");
   };
 
-  // Borrar Contrato
+  // Borrar Contrato (Privilegio Admin)
   const handleDeleteContract = (contractId) => {
-    setDb(prevDb => ({
-      ...prevDb,
-      contracts: prevDb.contracts.filter(c => c.id !== contractId),
-      weeklyInstallments: prevDb.weeklyInstallments.filter(w => w.contractId !== contractId)
-    }));
+    const updatedContracts = db.contracts.filter(c => c.id !== contractId);
+    const updatedWeeks = db.weeklyInstallments.filter(w => w.contractId !== contractId);
+    
+    updateDatabase({
+      ...db,
+      contracts: updatedContracts,
+      weeklyInstallments: updatedWeeks
+    });
+
     setShowDeleteModal(false);
-    setSelectedContractId(db.contracts.find(c => c.id !== contractId)?.id || '');
+    setSelectedContractId(updatedContracts[0]?.id || '');
   };
 
-  // Crear Nuevo Contrato de Financiamiento
+  // Crear Nuevo Contrato (Privilegio Admin)
   const handleCreateContract = (newContractData) => {
     const newId = `CTR-${Date.now()}`;
     const fullContract = {
       id: newId,
       ...newContractData,
+      sellerName: `${userSession.name} (Administrador)`,
       status: 'ACTIVE'
     };
 
     const newWeeks = createWeeksForContract(newId, Number(newContractData.totalWeeks), Number(newContractData.weeklyRate));
 
-    setDb(prevDb => ({
-      ...prevDb,
-      contracts: [fullContract, ...prevDb.contracts],
-      weeklyInstallments: [...prevDb.weeklyInstallments, ...newWeeks]
-    }));
+    const newDb = {
+      ...db,
+      contracts: [fullContract, ...db.contracts],
+      weeklyInstallments: [...db.weeklyInstallments, ...newWeeks]
+    };
 
+    updateDatabase(newDb);
     setSelectedContractId(newId);
-    setShowNewCreditModal(false);
     setActiveTab('financiamientos');
   };
 
   return (
     <div className="app-container">
-      {/* HEADER PRINCIPAL */}
+      {/* HEADER PRINCIPAL CON SESIÓN DE ANDRES REBOLLEDO */}
       <header className="top-header">
         <div className="brand-section">
           <div className="brand-title">
             <i data-lucide="shield-check"></i>
             <h2>Control Financiamiento Auto</h2>
           </div>
-          {userSession ? (
-            <div style={{fontSize:'0.8rem', color:'#60a5fa', background:'rgba(59, 130, 246, 0.1)', padding:'4px 10px', borderRadius:'12px'}}>
-              🔑 Admin
+
+          <div style={{display:'flex', alignItems:'center', gap:'10px'}}>
+            <div style={{fontSize:'0.82rem', color:'#60a5fa', background:'rgba(59, 130, 246, 0.15)', padding:'6px 12px', borderRadius:'20px', border:'1px solid rgba(59, 130, 246, 0.3)', fontWeight:'600'}}>
+              👤 {userSession.name}
             </div>
-          ) : (
-            <button className="btn btn-primary" style={{height:'34px', width:'auto', fontSize:'0.8rem'}} onClick={() => setShowLoginModal(true)}>
-              Iniciar Sesión
+            <button className="btn btn-secondary" style={{height:'32px', padding:'0 10px', fontSize:'0.75rem'}} onClick={handleLogout}>
+              Salir
             </button>
-          )}
+          </div>
         </div>
 
         {/* Buscador Rápido por Placa */}
@@ -389,9 +413,7 @@ function App() {
         </div>
       </header>
 
-      {/* RESTRICCIÓN DE PESTAÑAS (MÓVIL BOTONES) */}
-
-      {/* PESTAÑA 1: FINANCIAMIENTOS ACTIVOS & FICHA DEL AUTO */}
+      {/* PESTAÑA 1: FINANCIAMIENTOS ACTIVOS */}
       {activeTab === 'financiamientos' && currentContract && (
         <section>
           {/* Selector de Contratos Activos */}
@@ -417,7 +439,7 @@ function App() {
             ))}
           </div>
 
-          {/* 1. BARRA DE PROGRESO DE PAGOS DEL VEHÍCULO */}
+          {/* BARRA DE PROGRESO DE PAGOS */}
           <div className="progress-card">
             <div className="progress-header">
               <span className="plate-pill" style={{fontSize:'1.1rem'}}>{currentContract.plate}</span>
@@ -455,7 +477,7 @@ function App() {
               <div>📅 <strong>Plazo de Financiamiento:</strong> {currentContract.totalWeeks} Semanas (~14 meses) | 💰 Abono sugerido: ${currentContract.weeklyRate}/sem</div>
             </div>
 
-            {/* BOTONES DE ACCIÓN RÁPIDA */}
+            {/* BOTONES DE ACCIÓN RÁPIDA (PERMISOS ADMIN) */}
             <div className="vehicle-action-buttons">
               <button className="btn btn-success" onClick={() => setSelectedWeek(currentWeeks.find(w => w.status === 'PENDIENTE') || currentWeeks[0])}>
                 ➕ Registrar Abono
@@ -472,7 +494,7 @@ function App() {
             </div>
           </div>
 
-          {/* CALENDARIO DE SEMANAS Y ESTADOS */}
+          {/* CALENDARIO DE SEMANAS */}
           <h3 style={{marginBottom:'12px'}}>Calendario de Semanas por Estado</h3>
           
           <div className="weeks-cards-mobile">
@@ -512,12 +534,13 @@ function App() {
       {/* PESTAÑA 2: NUEVO CRÉDITO */}
       {activeTab === 'nuevo' && (
         <NewCreditForm 
+          adminName={userSession.name}
           onSave={handleCreateContract}
           onCancel={() => setActiveTab('financiamientos')}
         />
       )}
 
-      {/* PESTAÑA 3: ARCHIVADOS / LIQUIDADOS AL 100% */}
+      {/* PESTAÑA 3: ARCHIVADOS */}
       {activeTab === 'archivados' && (
         <section>
           <h3 style={{marginBottom:'16px'}}>Contratos Archivados / Liquidados (100% Pagados)</h3>
@@ -542,12 +565,12 @@ function App() {
         </section>
       )}
 
-      {/* PESTAÑA 4: BALANCE CONTABLE / RECAUDACIÓN */}
+      {/* PESTAÑA 4: BALANCE CONTABLE */}
       {activeTab === 'balance' && (
         <FinancialBalanceDashboard db={db} />
       )}
 
-      {/* MODAL DE REGISTRAR ABONO (MONTO EDITABLE) */}
+      {/* MODAL DE ABONO (EDITABLE) */}
       {selectedWeek && !showPauseModal && (
         <AbonoModal 
           week={selectedWeek}
@@ -557,7 +580,7 @@ function App() {
         />
       )}
 
-      {/* MODAL DE MARCAR PAUSA / SEMANA LIBRE */}
+      {/* MODAL DE PAUSA */}
       {showPauseModal && (
         <PauseModal 
           week={currentWeeks.find(w => w.status === 'PENDIENTE') || currentWeeks[0]}
@@ -566,7 +589,7 @@ function App() {
         />
       )}
 
-      {/* MODAL DE VISTA PREVIA Y COMPROBANTE PDF */}
+      {/* MODAL COMPROBANTE PDF */}
       {showReceiptModal && receiptData && (
         <ReceiptModal 
           receipt={receiptData}
@@ -590,19 +613,7 @@ function App() {
         </div>
       )}
 
-      {/* MODAL LOGIN ADMIN */}
-      {showLoginModal && (
-        <LoginModal 
-          onLogin={(user) => {
-            setUserSession(user);
-            localStorage.setItem(STORAGE_KEY_AUTH, user);
-            setShowLoginModal(false);
-          }}
-          onClose={() => setShowLoginModal(false)}
-        />
-      )}
-
-      {/* BARRA DE NAVEGACIÓN INFERIOR MÓVIL POR BOTONES (STICKY BOTTOM NAV BAR) */}
+      {/* BARRA DE NAVEGACIÓN INFERIOR MÓVIL */}
       <nav className="bottom-nav">
         <button className={`nav-item ${activeTab === 'financiamientos' ? 'active' : ''}`} onClick={() => setActiveTab('financiamientos')}>
           <i data-lucide="car"></i>
@@ -628,12 +639,136 @@ function App() {
   );
 }
 
+// COMPONENTE PANTALLA DE INICIO DE SESIÓN (LOGIN SCREEN)
+function LoginScreen({ onLoginSuccess }) {
+  const [username, setUsername] = useState('andres.rebolledo');
+  const [password, setPassword] = useState('Andres2026!');
+  const [errorMsg, setErrorMsg] = useState('');
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const cleanUser = username.trim().toLowerCase();
+    
+    if ((cleanUser === OFFICIAL_ADMIN.username || cleanUser === OFFICIAL_ADMIN.altUsername) && password === OFFICIAL_ADMIN.password) {
+      onLoginSuccess(OFFICIAL_ADMIN);
+    } else {
+      setErrorMsg('Usuario o contraseña incorrectos.');
+    }
+  };
+
+  const handleQuickLogin = () => {
+    onLoginSuccess(OFFICIAL_ADMIN);
+  };
+
+  return (
+    <div style={{
+      minHeight: '100vh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '16px',
+      background: 'radial-gradient(circle at top, #1e293b 0%, #0a0e17 100%)'
+    }}>
+      <div style={{
+        background: 'var(--bg-card)',
+        border: '1px solid var(--border-color)',
+        borderRadius: '24px',
+        padding: '28px 24px',
+        width: '100%',
+        maxWidth: '420px',
+        boxShadow: '0 20px 40px rgba(0, 0, 0, 0.6)'
+      }}>
+        <div style={{textAlign:'center', marginBottom:'24px'}}>
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '64px',
+            height: '64px',
+            borderRadius: '50%',
+            background: 'rgba(59, 130, 246, 0.15)',
+            border: '2px solid #3b82f6',
+            color: '#3b82f6',
+            marginBottom: '12px'
+          }}>
+            <i data-lucide="shield-check" style={{width:'32px', height:'32px'}}></i>
+          </div>
+          <h2 style={{fontSize:'1.4rem', fontWeight:'700'}}>Control Financiamiento Auto</h2>
+          <p style={{fontSize:'0.85rem', color:'var(--text-muted)', marginTop:'4px'}}>
+            Inicio de Sesión Administrador
+          </p>
+        </div>
+
+        {errorMsg && (
+          <div style={{background:'rgba(239, 68, 68, 0.15)', color:'#ef4444', padding:'10px', borderRadius:'8px', fontSize:'0.85rem', marginBottom:'16px', textAlign:'center', border:'1px solid rgba(239, 68, 68, 0.3)'}}>
+            {errorMsg}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label className="form-label">Usuario Administrador:</label>
+            <input 
+              type="text" 
+              className="form-control" 
+              placeholder="andres.rebolledo"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required 
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Contraseña:</label>
+            <input 
+              type="password" 
+              className="form-control" 
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required 
+            />
+          </div>
+
+          <button type="submit" className="btn btn-primary" style={{marginTop:'12px', fontSize:'1rem'}}>
+            🔑 Ingresar al Sistema
+          </button>
+        </form>
+
+        {/* TARJETA DE RECOMENDACIÓN DE ACCESO */}
+        <div style={{
+          marginTop: '20px',
+          padding: '14px',
+          background: 'rgba(255, 255, 255, 0.03)',
+          border: '1px dashed var(--border-color)',
+          borderRadius: '12px',
+          textAlign: 'center'
+        }}>
+          <div style={{fontSize:'0.8rem', color:'var(--text-muted)'}}>CUENTA OFICIAL DE ADMINISTRADOR</div>
+          <strong style={{fontSize:'0.95rem', color:'#60a5fa', display:'block', marginTop:'2px'}}>👤 {OFFICIAL_ADMIN.name}</strong>
+          <div style={{fontSize:'0.78rem', color:'var(--text-dim)', marginTop:'4px'}}>
+            Usuario: <code>{OFFICIAL_ADMIN.username}</code> | Clave: <code>{OFFICIAL_ADMIN.password}</code>
+          </div>
+
+          <button 
+            className="btn btn-secondary" 
+            style={{marginTop:'10px', height:'36px', fontSize:'0.8rem'}}
+            onClick={handleQuickLogin}
+          >
+            ⚡ Ingreso Rápido como Andres Rebolledo
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // COMPONENTE FORMULARIO NUEVO CRÉDITO
-function NewCreditForm({ onSave, onCancel }) {
+function NewCreditForm({ adminName, onSave, onCancel }) {
   const [plate, setPlate] = useState('');
   const [vehicleModel, setVehicleModel] = useState('');
   const [vehicleName, setVehicleName] = useState('');
-  const [sellerName, setSellerName] = useState('Lic. Roberto Silva (Vendedor)');
+  const [sellerName, setSellerName] = useState(`${adminName} (Administrador)`);
   const [buyerName, setBuyerName] = useState('');
   const [buyerDocument, setBuyerDocument] = useState('');
   const [buyerPhone, setBuyerPhone] = useState('');
@@ -719,9 +854,8 @@ function NewCreditForm({ onSave, onCancel }) {
   );
 }
 
-// COMPONENTE MODAL DE ABONO (CON MONTO EDITABLE)
+// COMPONENTE MODAL DE ABONO EDITABLE
 function AbonoModal({ week, contract, onClose, onSaveAbono }) {
-  // EL MONTO QUE SE CANCELA ES 100% EDITABLE
   const [editableAmount, setEditableAmount] = useState(week.paidAmount > 0 ? week.paidAmount : (week.agreedAmount || 200));
   const [paymentMethod, setPaymentMethod] = useState('Transferencia Bancaria');
 
@@ -737,7 +871,6 @@ function AbonoModal({ week, contract, onClose, onSaveAbono }) {
           Vehículo: <strong>{contract.plate}</strong> | Comprador: <strong>{contract.buyerName}</strong>
         </p>
 
-        {/* CAMPO DE MONTO CANCELADO 100% EDITABLE */}
         <div className="form-group">
           <label className="form-label" style={{color:'#10b981', fontWeight:'bold'}}>
             Monto a Cancelar ($ USD) - EDITABLE:
@@ -777,7 +910,7 @@ function AbonoModal({ week, contract, onClose, onSaveAbono }) {
   );
 }
 
-// COMPONENTE MODAL DE MARCAR PAUSA / SEMANA LIBRE
+// COMPONENTE MODAL DE PAUSA
 function PauseModal({ week, onClose, onSavePausa }) {
   const [reason, setReason] = useState('Mantenimiento en Taller (Frenos y Repuestos)');
 
@@ -816,7 +949,7 @@ function PauseModal({ week, onClose, onSavePausa }) {
   );
 }
 
-// COMPONENTE COMPROBANTE PDF PARA IMPRESIÓN CON FIRMAS
+// COMPONENTE COMPROBANTE PDF
 function ReceiptModal({ receipt, onClose }) {
   const handleDownloadPDF = () => {
     const element = document.getElementById('printable-receipt');
@@ -845,7 +978,6 @@ function ReceiptModal({ receipt, onClose }) {
           <button className="close-btn" onClick={onClose}>&times;</button>
         </div>
 
-        {/* PLANTILLA DE COMPROBANTE PARA IMPRESIÓN Y PDF */}
         <div id="printable-receipt" className="receipt-printable">
           <div className="receipt-header">
             <h2 style={{color:'#0f172a', margin:0}}>COMPROBANTE DE ABONO A FINANCIAMIENTO</h2>
@@ -877,7 +1009,6 @@ function ReceiptModal({ receipt, onClose }) {
             <div style={{fontWeight:'bold', color:'#dc2626'}}>Nuevo Saldo Pendiente: ${receipt.newBalance} USD</div>
           </div>
 
-          {/* RECUADROS PARA FIRMA FÍSICA EN IMPRESIÓN */}
           <div className="receipt-signatures-print">
             <div className="signature-box-print">
               <div style={{height:'40px'}}></div>
@@ -951,34 +1082,6 @@ function FinancialBalanceDashboard({ db }) {
             </div>
           </div>
         ))}
-      </div>
-    </div>
-  );
-}
-
-// LOGIN MODAL
-function LoginModal({ onLogin, onClose }) {
-  const [user, setUser] = useState('admin');
-  const [pass, setPass] = useState('123456');
-
-  return (
-    <div className="modal-overlay">
-      <div className="modal-content" style={{maxWidth:'380px'}}>
-        <div className="modal-header">
-          <h3>Inicio de Sesión Administrador</h3>
-          <button className="close-btn" onClick={onClose}>&times;</button>
-        </div>
-        <form onSubmit={(e) => { e.preventDefault(); onLogin(user); }}>
-          <div className="form-group">
-            <label className="form-label">Usuario:</label>
-            <input type="text" className="form-control" value={user} onChange={e => setUser(e.target.value)} required />
-          </div>
-          <div className="form-group">
-            <label className="form-label">Contraseña:</label>
-            <input type="password" className="form-control" value={pass} onChange={e => setPass(e.target.value)} required />
-          </div>
-          <button type="submit" className="btn btn-primary" style={{marginTop:'10px'}}>Ingresar al Sistema</button>
-        </form>
       </div>
     </div>
   );
