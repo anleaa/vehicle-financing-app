@@ -8,10 +8,9 @@
   <!-- Hoja de estilos CSS Mobile-First -->
   <link rel="stylesheet" href="styles.css">
 
-  <!-- React 18 & Babel Standalone -->
+  <!-- React 18 & ReactDOM UMD -->
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
@@ -30,7 +29,7 @@
 <body>
   <div id="root"></div>
 
-  <!-- Script principal de la aplicación React -->
-  <script type="text/babel" src="app.js"></script>
+  <!-- Script nativo de la aplicación React (sin dependencias de transpilación) -->
+  <script src="app.js"></script>
 </body>
 </html>

@@ -1,9 +1,10 @@
 /* ==========================================================================
    SISTEMA DE GESTIÓN DE FINANCIAMIENTO DE VEHÍCULOS A CRÉDITO Y CONTROL SEMANAL
-   React 18 + Firebase Cloud Sync + Admin Andres Rebolledo
+   React 18 Native (Sin compiladores externos - Carga Instantánea Garantizada)
    ========================================================================== */
 
-const { useState, useEffect } = React;
+const { useState, useEffect, useRef } = React;
+const h = React.createElement; // Taquigrafía para React.createElement
 
 // CREDENCIALES OFICIALES DE ADMINISTRADOR
 const OFFICIAL_ADMIN = {
@@ -16,7 +17,7 @@ const OFFICIAL_ADMIN = {
 
 // Claves de Almacenamiento Local
 const STORAGE_KEY_DB = 'vehicle_financing_credit_db_v1';
-const STORAGE_KEY_AUTH = 'vehicle_financing_auth_session_v4';
+const STORAGE_KEY_AUTH = 'vehicle_financing_auth_session_v5';
 
 // Datos de Demostración Iniciales (Semillas)
 const INITIAL_SEED = {
@@ -135,9 +136,7 @@ function loadDB() {
         return parsed;
       }
     }
-  } catch (e) {
-    console.error("Error al cargar la DB:", e);
-  }
+  } catch (e) {}
 
   const db = { ...INITIAL_SEED };
   let weeks = [];
@@ -164,7 +163,7 @@ function loadDB() {
   return db;
 }
 
-// COMPONENTE PANTALLA DE INICIO DE SESIÓN (LOGIN SCREEN PRINCIPAL)
+// 1. COMPONENTE PANTALLA DE INICIO DE SESIÓN (LOGIN SCREEN PRINCIPAL)
 function LoginScreen({ onLoginSuccess }) {
   const [username, setUsername] = useState('andres.rebolledo');
   const [password, setPassword] = useState('Andres2026!');
@@ -185,16 +184,18 @@ function LoginScreen({ onLoginSuccess }) {
     onLoginSuccess(OFFICIAL_ADMIN);
   };
 
-  return (
-    <div style={{
+  return h('div', {
+    style: {
       minHeight: '100vh',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       padding: '16px',
       background: 'radial-gradient(circle at top, #1e293b 0%, #0a0e17 100%)'
-    }}>
-      <div style={{
+    }
+  }, 
+    h('div', {
+      style: {
         background: '#121826',
         border: '1px solid #243047',
         borderRadius: '24px',
@@ -202,9 +203,12 @@ function LoginScreen({ onLoginSuccess }) {
         width: '100%',
         maxWidth: '420px',
         boxShadow: '0 20px 40px rgba(0, 0, 0, 0.6)'
-      }}>
-        <div style={{textAlign:'center', marginBottom:'24px'}}>
-          <div style={{
+      }
+    }, [
+      h('div', { key: 'header', style: { textAlign: 'center', marginBottom: '24px' } }, [
+        h('div', {
+          key: 'icon',
+          style: {
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -215,79 +219,71 @@ function LoginScreen({ onLoginSuccess }) {
             border: '2px solid #3b82f6',
             color: '#3b82f6',
             marginBottom: '12px'
-          }}>
-            <i data-lucide="shield-check" style={{width:'32px', height:'32px'}}></i>
-          </div>
-          <h2 style={{fontSize:'1.4rem', fontWeight:'700', color:'#ffffff'}}>Control Financiamiento Auto</h2>
-          <p style={{fontSize:'0.85rem', color:'#94a3b8', marginTop:'4px'}}>
-            Inicio de Sesión Administrador
-          </p>
-        </div>
+          }
+        }, h('i', { 'data-lucide': 'shield-check', style: { width: '32px', height: '32px' } })),
+        h('h2', { key: 'title', style: { fontSize: '1.4rem', fontWeight: '700', color: '#ffffff' } }, 'Control Financiamiento Auto'),
+        h('p', { key: 'sub', style: { fontSize: '0.85rem', color: '#94a3b8', marginTop: '4px' } }, 'Inicio de Sesión Administrador')
+      ]),
 
-        {errorMsg && (
-          <div style={{background:'rgba(239, 68, 68, 0.15)', color:'#ef4444', padding:'10px', borderRadius:'8px', fontSize:'0.85rem', marginBottom:'16px', textAlign:'center', border:'1px solid rgba(239, 68, 68, 0.3)'}}>
-            {errorMsg}
-          </div>
-        )}
+      errorMsg ? h('div', {
+        key: 'err',
+        style: { background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', padding: '10px', borderRadius: '8px', fontSize: '0.85rem', marginBottom: '16px', textAlign: 'center', border: '1px solid rgba(239, 68, 68, 0.3)' }
+      }, errorMsg) : null,
 
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label className="form-label">Usuario Administrador:</label>
-            <input 
-              type="text" 
-              className="form-control" 
-              placeholder="andres.rebolledo"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required 
-            />
-          </div>
+      h('form', { key: 'form', onSubmit: handleSubmit }, [
+        h('div', { key: 'user-group', className: 'form-group' }, [
+          h('label', { className: 'form-label' }, 'Usuario Administrador:'),
+          h('input', {
+            type: 'text',
+            className: 'form-control',
+            placeholder: 'andres.rebolledo',
+            value: username,
+            onChange: (e) => setUsername(e.target.value),
+            required: true
+          })
+        ]),
+        h('div', { key: 'pass-group', className: 'form-group' }, [
+          h('label', { className: 'form-label' }, 'Contraseña:'),
+          h('input', {
+            type: 'password',
+            className: 'form-control',
+            placeholder: '••••••••',
+            value: password,
+            onChange: (e) => setPassword(e.target.value),
+            required: true
+          })
+        ]),
+        h('button', { key: 'submit-btn', type: 'submit', className: 'btn btn-primary', style: { marginTop: '12px', fontSize: '1rem' } }, '🔑 Ingresar al Sistema')
+      ]),
 
-          <div className="form-group">
-            <label className="form-label">Contraseña:</label>
-            <input 
-              type="password" 
-              className="form-control" 
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required 
-            />
-          </div>
-
-          <button type="submit" className="btn btn-primary" style={{marginTop:'12px', fontSize:'1rem'}}>
-            🔑 Ingresar al Sistema
-          </button>
-        </form>
-
-        <div style={{
+      h('div', {
+        key: 'quick-card',
+        style: {
           marginTop: '20px',
           padding: '14px',
           background: 'rgba(255, 255, 255, 0.03)',
           border: '1px dashed #243047',
           borderRadius: '12px',
           textAlign: 'center'
-        }}>
-          <div style={{fontSize:'0.8rem', color:'#94a3b8'}}>CUENTA OFICIAL DE ADMINISTRADOR</div>
-          <strong style={{fontSize:'0.95rem', color:'#60a5fa', display:'block', marginTop:'2px'}}>👤 {OFFICIAL_ADMIN.name}</strong>
-          <div style={{fontSize:'0.78rem', color:'#64748b', marginTop:'4px'}}>
-            Usuario: <code>{OFFICIAL_ADMIN.username}</code> | Clave: <code>{OFFICIAL_ADMIN.password}</code>
-          </div>
-
-          <button 
-            className="btn btn-secondary" 
-            style={{marginTop:'10px', height:'36px', fontSize:'0.8rem'}}
-            onClick={handleQuickLogin}
-          >
-            ⚡ Ingreso Rápido como Andres Rebolledo
-          </button>
-        </div>
-      </div>
-    </div>
+        }
+      }, [
+        h('div', { key: 'q-lbl', style: { fontSize: '0.8rem', color: '#94a3b8' } }, 'CUENTA OFICIAL DE ADMINISTRADOR'),
+        h('strong', { key: 'q-name', style: { fontSize: '0.95rem', color: '#60a5fa', display: 'block', marginTop: '2px' } }, `👤 ${OFFICIAL_ADMIN.name}`),
+        h('div', { key: 'q-creds', style: { fontSize: '0.78rem', color: '#64748b', marginTop: '4px' } }, [
+          'Usuario: ', h('code', { key: 'u' }, OFFICIAL_ADMIN.username), ' | Clave: ', h('code', { key: 'p' }, OFFICIAL_ADMIN.password)
+        ]),
+        h('button', {
+          key: 'q-btn',
+          className: 'btn btn-secondary',
+          style: { marginTop: '10px', height: '36px', fontSize: '0.8rem' },
+          onClick: handleQuickLogin
+        }, '⚡ Ingreso Rápido como Andres Rebolledo')
+      ])
+    ])
   );
 }
 
-// COMPONENTE FORMULARIO NUEVO CRÉDITO
+// 2. FORMULARIO NUEVO CRÉDITO
 function NewCreditForm({ adminName, onSave, onCancel }) {
   const [plate, setPlate] = useState('');
   const [vehicleModel, setVehicleModel] = useState('');
@@ -319,172 +315,144 @@ function NewCreditForm({ adminName, onSave, onCancel }) {
     }
   };
 
-  return (
-    <div style={{background:'var(--bg-card)', padding:'20px', borderRadius:'16px', border:'1px solid var(--border-color)'}}>
-      <h3 style={{marginBottom:'16px'}}>➕ Registrar Nuevo Contrato de Financiamiento</h3>
-
-      <form onSubmit={handleSubmit}>
-        <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'12px'}}>
-          <div className="form-group">
-            <label className="form-label">Placa del Vehículo:</label>
-            <input type="text" className="form-control" placeholder="Ej: ABC-999" value={plate} onChange={e => setPlate(e.target.value)} required />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Modelo del Auto:</label>
-            <input type="text" className="form-control" placeholder="Ej: Toyota Yaris 2022" value={vehicleModel} onChange={e => setVehicleModel(e.target.value)} required />
-          </div>
-        </div>
-
-        <div className="form-group">
-          <label className="form-label">Nombre del Comprador / Deudor:</label>
-          <input type="text" className="form-control" placeholder="Nombre completo del cliente" value={buyerName} onChange={e => setBuyerName(e.target.value)} required />
-        </div>
-
-        <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'12px'}}>
-          <div className="form-group">
-            <label className="form-label">Cédula / DNI:</label>
-            <input type="text" className="form-control" placeholder="Ej: V-18.999.000" value={buyerDocument} onChange={e => setBuyerDocument(e.target.value)} />
-          </div>
-          <div className="form-group">
-            <label className="form-label">Teléfono:</label>
-            <input type="text" className="form-control" placeholder="Ej: +58 414-000-1122" value={buyerPhone} onChange={e => setBuyerPhone(e.target.value)} />
-          </div>
-        </div>
-
-        <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'10px'}}>
-          <div className="form-group">
-            <label className="form-label">Precio Total ($ USD):</label>
-            <input type="number" className="form-control" value={totalVehiclePrice} onChange={e => setTotalVehiclePrice(e.target.value)} required />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Abono Semanal ($):</label>
-            <input type="number" className="form-control" value={weeklyRate} onChange={e => setWeeklyRate(e.target.value)} required />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Plazo (Semanas):</label>
-            <input type="number" className="form-control" value={totalWeeks} onChange={e => setTotalWeeks(e.target.value)} required />
-          </div>
-        </div>
-
-        <div style={{display:'flex', gap:'10px', marginTop:'16px'}}>
-          <button type="button" className="btn btn-secondary" onClick={onCancel}>Cancelar</button>
-          <button type="submit" className="btn btn-success">Crear Contrato</button>
-        </div>
-      </form>
-    </div>
-  );
+  return h('div', { style: { background: 'var(--bg-card)', padding: '20px', borderRadius: '16px', border: '1px solid var(--border-color)' } }, [
+    h('h3', { key: 't', style: { marginBottom: '16px' } }, '➕ Registrar Nuevo Contrato de Financiamiento'),
+    h('form', { key: 'f', onSubmit: handleSubmit }, [
+      h('div', { key: 'g1', style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' } }, [
+        h('div', { key: 'p1', className: 'form-group' }, [
+          h('label', { className: 'form-label' }, 'Placa del Vehículo:'),
+          h('input', { type: 'text', className: 'form-control', placeholder: 'Ej: ABC-999', value: plate, onChange: e => setPlate(e.target.value), required: true })
+        ]),
+        h('div', { key: 'p2', className: 'form-group' }, [
+          h('label', { className: 'form-label' }, 'Modelo del Auto:'),
+          h('input', { type: 'text', className: 'form-control', placeholder: 'Ej: Toyota Yaris 2022', value: vehicleModel, onChange: e => setVehicleModel(e.target.value), required: true })
+        ])
+      ]),
+      h('div', { key: 'g2', className: 'form-group' }, [
+        h('label', { className: 'form-label' }, 'Nombre del Comprador / Deudor:'),
+        h('input', { type: 'text', className: 'form-control', placeholder: 'Nombre completo del cliente', value: buyerName, onChange: e => setBuyerName(e.target.value), required: true })
+      ]),
+      h('div', { key: 'g3', style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' } }, [
+        h('div', { key: 'd1', className: 'form-group' }, [
+          h('label', { className: 'form-label' }, 'Cédula / DNI:'),
+          h('input', { type: 'text', className: 'form-control', placeholder: 'Ej: V-18.999.000', value: buyerDocument, onChange: e => setBuyerDocument(e.target.value) })
+        ]),
+        h('div', { key: 'd2', className: 'form-group' }, [
+          h('label', { className: 'form-label' }, 'Teléfono:'),
+          h('input', { type: 'text', className: 'form-control', placeholder: 'Ej: +58 414-000-1122', value: buyerPhone, onChange: e => setBuyerPhone(e.target.value) })
+        ])
+      ]),
+      h('div', { key: 'g4', style: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' } }, [
+        h('div', { key: 'v1', className: 'form-group' }, [
+          h('label', { className: 'form-label' }, 'Precio Total ($ USD):'),
+          h('input', { type: 'number', className: 'form-control', value: totalVehiclePrice, onChange: e => setTotalVehiclePrice(e.target.value), required: true })
+        ]),
+        h('div', { key: 'v2', className: 'form-group' }, [
+          h('label', { className: 'form-label' }, 'Abono Semanal ($):'),
+          h('input', { type: 'number', className: 'form-control', value: weeklyRate, onChange: e => setWeeklyRate(e.target.value), required: true })
+        ]),
+        h('div', { key: 'v3', className: 'form-group' }, [
+          h('label', { className: 'form-label' }, 'Plazo (Semanas):'),
+          h('input', { type: 'number', className: 'form-control', value: totalWeeks, onChange: e => setTotalWeeks(e.target.value), required: true })
+        ])
+      ]),
+      h('div', { key: 'g5', style: { display: 'flex', gap: '10px', marginTop: '16px' } }, [
+        h('button', { key: 'c', type: 'button', className: 'btn btn-secondary', onClick: onCancel }, 'Cancelar'),
+        h('button', { key: 's', type: 'submit', className: 'btn btn-success' }, 'Crear Contrato')
+      ])
+    ])
+  ]);
 }
 
-// COMPONENTE MODAL DE ABONO EDITABLE
+// 3. MODAL DE ABONO EDITABLE
 function AbonoModal({ week, contract, onClose, onSaveAbono }) {
   const [editableAmount, setEditableAmount] = useState(week.paidAmount > 0 ? week.paidAmount : (week.agreedAmount || 200));
   const [paymentMethod, setPaymentMethod] = useState('Transferencia Bancaria');
 
-  return (
-    <div className="modal-overlay">
-      <div className="modal-content">
-        <div className="modal-header">
-          <h3>Registrar Abono - Semana {week.weekNumber}</h3>
-          <button className="close-btn" onClick={onClose}>&times;</button>
-        </div>
-
-        <p style={{fontSize:'0.85rem', color:'var(--text-muted)', marginBottom:'14px'}}>
-          Vehículo: <strong>{contract.plate}</strong> | Comprador: <strong>{contract.buyerName}</strong>
-        </p>
-
-        <div className="form-group">
-          <label className="form-label" style={{color:'#10b981', fontWeight:'bold'}}>
-            Monto a Cancelar ($ USD) - EDITABLE:
-          </label>
-          <input 
-            type="number" 
-            className="form-control" 
-            style={{fontSize:'1.2rem', fontWeight:'bold', color:'#10b981'}}
-            value={editableAmount}
-            onChange={(e) => setEditableAmount(e.target.value)}
-            placeholder="Ingrese el monto recibido..."
-            required 
-          />
-          <span style={{fontSize:'0.75rem', color:'var(--text-muted)'}}>
-            * Puedes modificar libremente este monto ($200 sugerido, abonos parciales o pagos mayores).
-          </span>
-        </div>
-
-        <div className="form-group">
-          <label className="form-label">Método de Pago:</label>
-          <select className="form-control" value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
-            <option value="Transferencia Bancaria">Transferencia Bancaria</option>
-            <option value="Pago Móvil">Pago Móvil</option>
-            <option value="Efectivo USD">Efectivo USD</option>
-            <option value="Zelle / USDT">Zelle / USDT</option>
-          </select>
-        </div>
-
-        <div style={{display:'flex', gap:'10px', marginTop:'20px'}}>
-          <button className="btn btn-secondary" onClick={onClose}>Cancelar</button>
-          <button className="btn btn-success" onClick={() => onSaveAbono(week.id, editableAmount, paymentMethod)}>
-            💾 Registrar Abono y Emitir Comprobante PDF
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+  return h('div', { className: 'modal-overlay' }, [
+    h('div', { className: 'modal-content' }, [
+      h('div', { key: 'mh', className: 'modal-header' }, [
+        h('h3', { key: 't' }, `Registrar Abono - Semana ${week.weekNumber}`),
+        h('button', { key: 'c', className: 'close-btn', onClick: onClose }, '×')
+      ]),
+      h('p', { key: 'sub', style: { fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '14px' } }, [
+        'Vehículo: ', h('strong', { key: 'p' }, contract.plate), ' | Comprador: ', h('strong', { key: 'b' }, contract.buyerName)
+      ]),
+      h('div', { key: 'fg1', className: 'form-group' }, [
+        h('label', { className: 'form-label', style: { color: '#10b981', fontWeight: 'bold' } }, 'Monto a Cancelar ($ USD) - EDITABLE:'),
+        h('input', {
+          type: 'number',
+          className: 'form-control',
+          style: { fontSize: '1.2rem', fontWeight: 'bold', color: '#10b981' },
+          value: editableAmount,
+          onChange: (e) => setEditableAmount(e.target.value),
+          required: true
+        }),
+        h('span', { style: { fontSize: '0.75rem', color: 'var(--text-muted)' } }, '* Puedes modificar libremente este monto ($200 sugerido, abonos parciales o pagos mayores).')
+      ]),
+      h('div', { key: 'fg2', className: 'form-group' }, [
+        h('label', { className: 'form-label' }, 'Método de Pago:'),
+        h('select', {
+          className: 'form-control',
+          value: paymentMethod,
+          onChange: (e) => setPaymentMethod(e.target.value)
+        }, [
+          h('option', { key: 'o1', value: 'Transferencia Bancaria' }, 'Transferencia Bancaria'),
+          h('option', { key: 'o2', value: 'Pago Móvil' }, 'Pago Móvil'),
+          h('option', { key: 'o3', value: 'Efectivo USD' }, 'Efectivo USD'),
+          h('option', { key: 'o4', value: 'Zelle / USDT' }, 'Zelle / USDT')
+        ])
+      ]),
+      h('div', { key: 'acts', style: { display: 'flex', gap: '10px', marginTop: '20px' } }, [
+        h('button', { key: 'btn-c', className: 'btn btn-secondary', onClick: onClose }, 'Cancelar'),
+        h('button', { key: 'btn-s', className: 'btn btn-success', onClick: () => onSaveAbono(week.id, editableAmount, paymentMethod) }, '💾 Registrar Abono y Emitir Comprobante PDF')
+      ])
+    ])
+  ]);
 }
 
-// COMPONENTE MODAL DE PAUSA
+// 4. MODAL DE PAUSA
 function PauseModal({ week, onClose, onSavePausa }) {
   const [reason, setReason] = useState('Mantenimiento en Taller (Frenos y Repuestos)');
 
-  return (
-    <div className="modal-overlay">
-      <div className="modal-content">
-        <div className="modal-header">
-          <h3>🔵 Marcar Pausa / Semana Libre ($0.00)</h3>
-          <button className="close-btn" onClick={onClose}>&times;</button>
-        </div>
-
-        <p style={{fontSize:'0.85rem', color:'var(--text-muted)', marginBottom:'14px'}}>
-          Congelar la Semana {week.weekNumber}. No genera cobro de $200 ni mora, pero mantiene el saldo del vehículo sin reducir.
-        </p>
-
-        <div className="form-group">
-          <label className="form-label">Motivo de la Pausa / Semana Libre:</label>
-          <input 
-            type="text" 
-            className="form-control" 
-            placeholder="Ej: Auto en taller por cambio de repuestos"
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            required 
-          />
-        </div>
-
-        <div style={{display:'flex', gap:'10px', marginTop:'20px'}}>
-          <button className="btn btn-secondary" onClick={onClose}>Cancelar</button>
-          <button className="btn btn-primary" onClick={() => onSavePausa(week.id, reason)}>
-            🔵 Congelar Semana Libre
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+  return h('div', { className: 'modal-overlay' }, [
+    h('div', { className: 'modal-content' }, [
+      h('div', { key: 'mh', className: 'modal-header' }, [
+        h('h3', { key: 't' }, '🔵 Marcar Pausa / Semana Libre ($0.00)'),
+        h('button', { key: 'c', className: 'close-btn', onClick: onClose }, '×')
+      ]),
+      h('p', { key: 'sub', style: { fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '14px' } }, `Congelar la Semana ${week.weekNumber}. No genera cobro de $200 ni mora, pero mantiene el saldo sin reducir.`),
+      h('div', { key: 'fg', className: 'form-group' }, [
+        h('label', { className: 'form-label' }, 'Motivo de la Pausa / Semana Libre:'),
+        h('input', {
+          type: 'text',
+          className: 'form-control',
+          placeholder: 'Ej: Auto en taller por cambio de repuestos',
+          value: reason,
+          onChange: (e) => setReason(e.target.value),
+          required: true
+        })
+      ]),
+      h('div', { key: 'acts', style: { display: 'flex', gap: '10px', marginTop: '20px' } }, [
+        h('button', { key: 'btn-c', className: 'btn btn-secondary', onClick: onClose }, 'Cancelar'),
+        h('button', { key: 'btn-s', className: 'btn btn-primary', onClick: () => onSavePausa(week.id, reason) }, '🔵 Congelar Semana Libre')
+      ])
+    ])
+  ]);
 }
 
-// COMPONENTE COMPROBANTE PDF
+// 5. MODAL COMPROBANTE PDF
 function ReceiptModal({ receipt, onClose }) {
   const handleDownloadPDF = () => {
     const element = document.getElementById('printable-receipt');
     if (!element) return;
 
     const opt = {
-      margin:       10,
-      filename:     `Comprobante_Abono_${receipt.receiptNumber}_${receipt.plate}.pdf`,
-      image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { scale: 2 },
-      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      margin: 10,
+      filename: `Comprobante_Abono_${receipt.receiptNumber}_${receipt.plate}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
     if (window.html2pdf) {
@@ -494,70 +462,59 @@ function ReceiptModal({ receipt, onClose }) {
     }
   };
 
-  return (
-    <div className="modal-overlay">
-      <div className="modal-content" style={{maxWidth:'650px'}}>
-        <div className="modal-header">
-          <h3>Comprobante de Abono #{receipt.receiptNumber}</h3>
-          <button className="close-btn" onClick={onClose}>&times;</button>
-        </div>
-
-        <div id="printable-receipt" className="receipt-printable">
-          <div className="receipt-header">
-            <h2 style={{color:'#0f172a', margin:0}}>COMPROBANTE DE ABONO A FINANCIAMIENTO</h2>
-            <p style={{fontSize:'0.85rem', color:'#475569', margin:'4px 0'}}>N° Recibo: <strong>{receipt.receiptNumber}</strong> | Fecha: {receipt.date}</p>
-          </div>
-
-          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px', fontSize:'0.85rem', marginBottom:'14px'}}>
-            <div style={{border:'1px solid #cbd5e1', padding:'10px', borderRadius:'6px'}}>
-              <strong>DATOS DEL VEHÍCULO:</strong>
-              <div>Placa: <strong>{receipt.plate}</strong></div>
-              <div>Modelo: {receipt.vehicleModel}</div>
-            </div>
-
-            <div style={{border:'1px solid #cbd5e1', padding:'10px', borderRadius:'6px'}}>
-              <strong>DATOS DE LAS PARTES:</strong>
-              <div>Vendedor: {receipt.sellerName}</div>
-              <div>Comprador: <strong>{receipt.buyerName}</strong></div>
-              <div>Cédula/DNI: {receipt.buyerDocument}</div>
-            </div>
-          </div>
-
-          <div style={{border:'1px solid #0f172a', padding:'12px', borderRadius:'6px', marginBottom:'16px', background:'#f8fafc'}}>
-            <h4 style={{color:'#0f172a', margin:0}}>RESUMEN FINANCIERO DEL ABONO</h4>
-            <div style={{marginTop:'6px'}}>Semana: <strong>{receipt.weekRange}</strong></div>
-            <div style={{fontSize:'1.2rem', fontWeight:'bold', color:'#059669', marginTop:'6px'}}>
-              Monto Cancelado: ${receipt.amountPaid} USD ({receipt.paymentMethod})
-            </div>
-            <div style={{marginTop:'6px', fontSize:'0.9rem'}}>Saldo Anterior: ${receipt.previousBalance} USD</div>
-            <div style={{fontWeight:'bold', color:'#dc2626'}}>Nuevo Saldo Pendiente: ${receipt.newBalance} USD</div>
-          </div>
-
-          <div className="receipt-signatures-print">
-            <div className="signature-box-print">
-              <div style={{height:'40px'}}></div>
-              Firma del Vendedor / Dueño
-            </div>
-
-            <div className="signature-box-print">
-              <div style={{height:'40px'}}></div>
-              Firma del Comprador
-            </div>
-          </div>
-        </div>
-
-        <div style={{display:'flex', gap:'10px', marginTop:'20px'}}>
-          <button className="btn btn-secondary" onClick={onClose}>Cerrar</button>
-          <button className="btn btn-primary" onClick={handleDownloadPDF}>
-            📄 Descargar Comprobante PDF / Imprimir
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+  return h('div', { className: 'modal-overlay' }, [
+    h('div', { className: 'modal-content', style: { maxWidth: '650px' } }, [
+      h('div', { key: 'mh', className: 'modal-header' }, [
+        h('h3', { key: 't' }, `Comprobante de Abono #${receipt.receiptNumber}`),
+        h('button', { key: 'c', className: 'close-btn', onClick: onClose }, '×')
+      ]),
+      h('div', { key: 'pr', id: 'printable-receipt', className: 'receipt-printable' }, [
+        h('div', { key: 'rh', className: 'receipt-header' }, [
+          h('h2', { key: 't1', style: { color: '#0f172a', margin: 0 } }, 'COMPROBANTE DE ABONO A FINANCIAMIENTO'),
+          h('p', { key: 't2', style: { fontSize: '0.85rem', color: '#475569', margin: '4px 0' } }, [
+            'N° Recibo: ', h('strong', { key: 'rn' }, receipt.receiptNumber), ` | Fecha: ${receipt.date}`
+          ])
+        ]),
+        h('div', { key: 'rg1', style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '0.85rem', marginBottom: '14px' } }, [
+          h('div', { key: 'box1', style: { border: '1px solid #cbd5e1', padding: '10px', borderRadius: '6px' } }, [
+            h('strong', { key: 'b1' }, 'DATOS DEL VEHÍCULO:'),
+            h('div', { key: 'p' }, ['Placa: ', h('strong', { key: 'pl' }, receipt.plate)]),
+            h('div', { key: 'm' }, `Modelo: ${receipt.vehicleModel}`)
+          ]),
+          h('div', { key: 'box2', style: { border: '1px solid #cbd5e1', padding: '10px', borderRadius: '6px' } }, [
+            h('strong', { key: 'b2' }, 'DATOS DE LAS PARTES:'),
+            h('div', { key: 'v' }, `Vendedor: ${receipt.sellerName}`),
+            h('div', { key: 'c' }, ['Comprador: ', h('strong', { key: 'bu' }, receipt.buyerName)]),
+            h('div', { key: 'd' }, `Cédula/DNI: ${receipt.buyerDocument}`)
+          ])
+        ]),
+        h('div', { key: 'rg2', style: { border: '1px solid #0f172a', padding: '12px', borderRadius: '6px', marginBottom: '16px', background: '#f8fafc' } }, [
+          h('h4', { key: 't', style: { color: '#0f172a', margin: 0 } }, 'RESUMEN FINANCIERO DEL ABONO'),
+          h('div', { key: 'w', style: { marginTop: '6px' } }, ['Semana: ', h('strong', { key: 'wr' }, receipt.weekRange)]),
+          h('div', { key: 'a', style: { fontSize: '1.2rem', fontWeight: 'bold', color: '#059669', marginTop: '6px' } }, `Monto Cancelado: $${receipt.amountPaid} USD (${receipt.paymentMethod})`),
+          h('div', { key: 'prev', style: { marginTop: '6px', fontSize: '0.9rem' } }, `Saldo Anterior: $${receipt.previousBalance} USD`),
+          h('div', { key: 'new', style: { fontWeight: 'bold', color: '#dc2626' } }, `Nuevo Saldo Pendiente: $${receipt.newBalance} USD`)
+        ]),
+        h('div', { key: 'sigs', className: 'receipt-signatures-print' }, [
+          h('div', { key: 's1', className: 'signature-box-print' }, [
+            h('div', { key: 'spacer', style: { height: '40px' } }),
+            'Firma del Vendedor / Dueño'
+          ]),
+          h('div', { key: 's2', className: 'signature-box-print' }, [
+            h('div', { key: 'spacer', style: { height: '40px' } }),
+            'Firma del Comprador'
+          ])
+        ])
+      ]),
+      h('div', { key: 'acts', style: { display: 'flex', gap: '10px', marginTop: '20px' } }, [
+        h('button', { key: 'b1', className: 'btn btn-secondary', onClick: onClose }, 'Cerrar'),
+        h('button', { key: 'b2', className: 'btn btn-primary', onClick: handleDownloadPDF }, '📄 Descargar Comprobante PDF / Imprimir')
+      ])
+    ])
+  ]);
 }
 
-// DASHBOARD BALANCE CONTABLE
+// 6. DASHBOARD BALANCE CONTABLE
 function FinancialBalanceDashboard({ db }) {
   let totalRecaudado = 0;
   let totalCarteraPendiente = 0;
@@ -583,49 +540,41 @@ function FinancialBalanceDashboard({ db }) {
     });
   }
 
-  return (
-    <div style={{background:'var(--bg-card)', padding:'18px', borderRadius:'16px', border:'1px solid var(--border-color)'}}>
-      <h3 style={{marginBottom:'16px'}}>📊 Balance y Recaudación de Financiamientos</h3>
-
-      <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'12px', marginBottom:'20px'}}>
-        <div style={{background:'rgba(16, 185, 129, 0.1)', border:'1px solid rgba(16, 185, 129, 0.3)', padding:'14px', borderRadius:'10px'}}>
-          <div style={{fontSize:'0.8rem', color:'var(--text-muted)'}}>TOTAL RECAUDADO ACUMULADO</div>
-          <div style={{fontSize:'1.4rem', fontWeight:'bold', color:'#10b981'}}>${totalRecaudado} USD</div>
-        </div>
-
-        <div style={{background:'rgba(239, 68, 68, 0.1)', border:'1px solid rgba(239, 68, 68, 0.3)', padding:'14px', borderRadius:'10px'}}>
-          <div style={{fontSize:'0.8rem', color:'var(--text-muted)'}}>CARTERA TOTAL PENDIENTE</div>
-          <div style={{fontSize:'1.4rem', fontWeight:'bold', color:'#ef4444'}}>${totalCarteraPendiente} USD</div>
-        </div>
-      </div>
-
-      <h4>Historial de Comprobantes Emitidos</h4>
-      <div style={{display:'flex', flexDirection:'column', gap:'8px', marginTop:'10px'}}>
-        {(!db || !Array.isArray(db.receipts) || db.receipts.length === 0) ? (
-          <p style={{color:'var(--text-muted)', fontSize:'0.85rem'}}>No hay recibos registrados.</p>
-        ) : (
-          db.receipts.map(r => (
-            <div key={r.id} style={{background:'var(--bg-card-hover)', padding:'12px', borderRadius:'8px', display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-              <div>
-                <strong>Comprobante #{r.receiptNumber}</strong> - {r.plate}
-                <div style={{fontSize:'0.8rem', color:'var(--text-muted)'}}>{r.buyerName} | Fecha: {r.date}</div>
-              </div>
-              <div style={{textAlign:'right'}}>
-                <strong style={{color:'#10b981'}}>${r.amountPaid} USD</strong>
-              </div>
-            </div>
+  return h('div', { style: { background: 'var(--bg-card)', padding: '18px', borderRadius: '16px', border: '1px solid var(--border-color)' } }, [
+    h('h3', { key: 't', style: { marginBottom: '16px' } }, '📊 Balance y Recaudación de Financiamientos'),
+    h('div', { key: 'g1', style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' } }, [
+      h('div', { key: 'b1', style: { background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', padding: '14px', borderRadius: '10px' } }, [
+        h('div', { key: 'lbl1', style: { fontSize: '0.8rem', color: 'var(--text-muted)' } }, 'TOTAL RECAUDADO ACUMULADO'),
+        h('div', { key: 'val1', style: { fontSize: '1.4rem', fontWeight: 'bold', color: '#10b981' } }, `$${totalRecaudado} USD`)
+      ]),
+      h('div', { key: 'b2', style: { background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', padding: '14px', borderRadius: '10px' } }, [
+        h('div', { key: 'lbl2', style: { fontSize: '0.8rem', color: 'var(--text-muted)' } }, 'CARTERA TOTAL PENDIENTE'),
+        h('div', { key: 'val2', style: { fontSize: '1.4rem', fontWeight: 'bold', color: '#ef4444' } }, `$${totalCarteraPendiente} USD`)
+      ])
+    ]),
+    h('h4', { key: 't2' }, 'Historial de Comprobantes Emitidos'),
+    h('div', { key: 'list', style: { display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' } }, [
+      (!db || !Array.isArray(db.receipts) || db.receipts.length === 0) 
+        ? h('p', { key: 'empty', style: { color: 'var(--text-muted)', fontSize: '0.85rem' } }, 'No hay recibos registrados.')
+        : db.receipts.map(r => (
+            h('div', { key: r.id, style: { background: 'var(--bg-card-hover)', padding: '12px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' } }, [
+              h('div', { key: 'info' }, [
+                h('strong', { key: 'num' }, `Comprobante #${r.receiptNumber}`), ` - ${r.plate}`,
+                h('div', { key: 'sub', style: { fontSize: '0.8rem', color: 'var(--text-muted)' } }, `${r.buyerName} | Fecha: ${r.date}`)
+              ]),
+              h('div', { key: 'amt', style: { textAlign: 'right' } }, [
+                h('strong', { style: { color: '#10b981' } }, `$${r.amountPaid} USD`)
+              ])
+            ])
           ))
-        )}
-      </div>
-    </div>
-  );
+    ])
+  ]);
 }
 
-// COMPONENTE PRINCIPAL (APP)
+// 7. COMPONENTE PRINCIPAL (APP)
 function App() {
   const [db, setDb] = useState(loadDB);
   
-  // ESTADO DE SESIÓN DEL ADMINISTRADOR (Andres Rebolledo)
   const [userSession, setUserSession] = useState(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_AUTH);
@@ -637,19 +586,16 @@ function App() {
     }
   });
 
-  // Navegación Inferior Móvil: 'financiamientos', 'nuevo', 'archivados', 'balance'
   const [activeTab, setActiveTab] = useState('financiamientos');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedContractId, setSelectedContractId] = useState('CTR-001');
 
-  // Modales
   const [selectedWeek, setSelectedWeek] = useState(null);
   const [showPauseModal, setShowPauseModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [receiptData, setReceiptData] = useState(null);
 
-  // Sincronización Nube
   useEffect(() => {
     if (window.cloudDbService) {
       window.cloudDbService.subscribeToCloudChanges((cloudData) => {
@@ -675,18 +621,16 @@ function App() {
     }
   });
 
-  // PANTALLA DE INICIO OBLIGATORIA SI NO HAY SESIÓN
+  // SI NO HAY SESIÓN INICIADA: RENDERIZAR LOGIN SCREEN
   if (!userSession || typeof userSession !== 'object' || !userSession.name) {
-    return (
-      <LoginScreen 
-        onLoginSuccess={(userData) => {
-          setUserSession(userData);
-          try {
-            localStorage.setItem(STORAGE_KEY_AUTH, JSON.stringify(userData));
-          } catch (e) {}
-        }}
-      />
-    );
+    return h(LoginScreen, {
+      onLoginSuccess: (userData) => {
+        setUserSession(userData);
+        try {
+          localStorage.setItem(STORAGE_KEY_AUTH, JSON.stringify(userData));
+        } catch (e) {}
+      }
+    });
   }
 
   const currentContract = (db && Array.isArray(db.contracts)) 
@@ -728,7 +672,6 @@ function App() {
     localStorage.removeItem(STORAGE_KEY_AUTH);
   };
 
-  // Registrar Abono
   const handleSaveAbono = (weekId, editableAmount, paymentMethod) => {
     const numericAmount = Number(editableAmount);
 
@@ -778,7 +721,6 @@ function App() {
     setSelectedWeek(null);
   };
 
-  // Pausa
   const handleSavePausa = (weekId, pauseReason) => {
     const updatedWeeks = db.weeklyInstallments.map(w => {
       if (w.id === weekId) {
@@ -797,14 +739,12 @@ function App() {
     setShowPauseModal(false);
   };
 
-  // Archivar
   const handleArchiveContract = (contractId) => {
     const updatedContracts = db.contracts.map(c => c.id === contractId ? { ...c, status: 'ARCHIVED_PAID' } : c);
     updateDatabase({ ...db, contracts: updatedContracts });
     alert("🟢 ¡El financiamiento ha sido archivado como 100% Liquidado!");
   };
 
-  // Borrar
   const handleDeleteContract = (contractId) => {
     const updatedContracts = db.contracts.filter(c => c.id !== contractId);
     const updatedWeeks = db.weeklyInstallments.filter(w => w.contractId !== contractId);
@@ -819,7 +759,6 @@ function App() {
     setSelectedContractId(updatedContracts[0]?.id || '');
   };
 
-  // Nuevo Crédito
   const handleCreateContract = (newContractData) => {
     const newId = `CTR-${Date.now()}`;
     const fullContract = {
@@ -842,279 +781,219 @@ function App() {
     setActiveTab('financiamientos');
   };
 
-  return (
-    <div className="app-container">
-      {/* HEADER PRINCIPAL */}
-      <header className="top-header">
-        <div className="brand-section">
-          <div className="brand-title">
-            <i data-lucide="shield-check"></i>
-            <h2>Control Financiamiento Auto</h2>
-          </div>
+  return h('div', { className: 'app-container' }, [
+    // HEADER PRINCIPAL
+    h('header', { key: 'top-header', className: 'top-header' }, [
+      h('div', { key: 'brand', className: 'brand-section' }, [
+        h('div', { key: 'bt', className: 'brand-title' }, [
+          h('i', { key: 'i', 'data-lucide': 'shield-check' }),
+          h('h2', { key: 'h' }, 'Control Financiamiento Auto')
+        ]),
+        h('div', { key: 'usr', style: { display: 'flex', alignItems: 'center', gap: '10px' } }, [
+          h('div', { key: 'u', style: { fontSize: '0.82rem', color: '#60a5fa', background: 'rgba(59, 130, 246, 0.15)', padding: '6px 12px', borderRadius: '20px', border: '1px solid rgba(59, 130, 246, 0.3)', fontWeight: '600' } }, `👤 ${userSession.name || OFFICIAL_ADMIN.name}`),
+          h('button', { key: 'b', className: 'btn btn-secondary', style: { height: '32px', padding: '0 10px', fontSize: '0.75rem' }, onClick: handleLogout }, 'Salir')
+        ])
+      ]),
+      h('div', { key: 'search', className: 'search-container' }, [
+        h('div', { key: 'sw', className: 'search-input-wrapper' }, [
+          h('i', { key: 'si', 'data-lucide': 'search', className: 'search-icon' }),
+          h('input', {
+            type: 'text',
+            className: 'search-input',
+            placeholder: 'INGRESAR PLACA O VEHÍCULO (EJ: ABC-999)...',
+            value: searchQuery,
+            onChange: (e) => setSearchQuery(e.target.value)
+          })
+        ]),
+        filteredVehicles.length > 0 ? h('div', { key: 'dd', className: 'search-results-dropdown' }, 
+          filteredVehicles.map(c => (
+            h('div', { key: c.id, className: 'search-result-item', onClick: () => handleSelectPlate(c.id) }, [
+              h('div', { key: 'l' }, [
+                h('span', { key: 'p', className: 'plate-pill' }, c.plate),
+                h('strong', { key: 'n', style: { marginLeft: '8px' } }, c.vehicleName)
+              ]),
+              h('span', { key: 'r', style: { fontSize: '0.8rem', color: 'var(--text-muted)' } }, c.buyerName)
+            ])
+          ))
+        ) : null
+      ])
+    ]),
 
-          <div style={{display:'flex', alignItems:'center', gap:'10px'}}>
-            <div style={{fontSize:'0.82rem', color:'#60a5fa', background:'rgba(59, 130, 246, 0.15)', padding:'6px 12px', borderRadius:'20px', border:'1px solid rgba(59, 130, 246, 0.3)', fontWeight:'600'}}>
-              👤 {userSession.name || OFFICIAL_ADMIN.name}
-            </div>
-            <button className="btn btn-secondary" style={{height:'32px', padding:'0 10px', fontSize:'0.75rem'}} onClick={handleLogout}>
-              Salir
-            </button>
-          </div>
-        </div>
+    // PESTAÑA 1: FINANCIAMIENTOS ACTIVOS
+    activeTab === 'financiamientos' && currentContract ? h('section', { key: 'tab1' }, [
+      h('div', { key: 'sel', style: { display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '10px', marginBottom: '16px' } }, 
+        db.contracts.filter(c => c.status === 'ACTIVE').map(c => (
+          h('button', {
+            key: c.id,
+            onClick: () => setSelectedContractId(c.id),
+            style: {
+              background: c.id === selectedContractId ? '#2563eb' : 'var(--bg-card)',
+              color: c.id === selectedContractId ? '#ffffff' : 'var(--text-muted)',
+              border: '1px solid var(--border-color)',
+              padding: '8px 14px',
+              borderRadius: '20px',
+              fontWeight: '600',
+              fontSize: '0.85rem',
+              whiteSpace: 'nowrap',
+              cursor: 'pointer'
+            }
+          }, `🚘 ${c.plate} - ${c.vehicleName}`)
+        ))
+      ),
 
-        {/* Buscador Rápido por Placa */}
-        <div className="search-container">
-          <div className="search-input-wrapper">
-            <i data-lucide="search" className="search-icon"></i>
-            <input 
-              type="text" 
-              className="search-input" 
-              placeholder="INGRESAR PLACA O VEHÍCULO (EJ: ABC-999)..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
+      h('div', { key: 'prog', className: 'progress-card' }, [
+        h('div', { key: 'ph', className: 'progress-header' }, [
+          h('span', { key: 'p', className: 'plate-pill', style: { fontSize: '1.1rem' } }, currentContract.plate),
+          h('strong', { key: 'pct', style: { color: '#10b981', fontSize: '1.1rem' } }, `${progressPercent}% COMPLETADO`)
+        ]),
+        h('div', { key: 'pbc', className: 'progress-bar-container' }, [
+          h('div', { key: 'pbf', className: 'progress-bar-fill', style: { width: `${progressPercent}%` } })
+        ]),
+        h('div', { key: 'psg', className: 'progress-stats-grid' }, [
+          h('div', { key: 'sb1', className: 'progress-stat-box' }, [
+            h('div', { key: 'l', className: 'progress-stat-label' }, 'Costo Total'),
+            h('div', { key: 'v', className: 'progress-stat-value', style: { color: '#f8fafc' } }, `$${currentContract.totalVehiclePrice}`)
+          ]),
+          h('div', { key: 'sb2', className: 'progress-stat-box' }, [
+            h('div', { key: 'l', className: 'progress-stat-label' }, 'Total Pagado'),
+            h('div', { key: 'v', className: 'progress-stat-value', style: { color: '#10b981' } }, `$${totalPaid}`)
+          ]),
+          h('div', { key: 'sb3', className: 'progress-stat-box' }, [
+            h('div', { key: 'l', className: 'progress-stat-label' }, 'Pendiente'),
+            h('div', { key: 'v', className: 'progress-stat-value', style: { color: '#ef4444' } }, `$${pendingBalance}`)
+          ])
+        ])
+      ]),
 
-          {filteredVehicles.length > 0 && (
-            <div className="search-results-dropdown">
-              {filteredVehicles.map(c => (
-                <div key={c.id} className="search-result-item" onClick={() => handleSelectPlate(c.id)}>
-                  <div>
-                    <span className="plate-pill">{c.plate}</span>
-                    <strong style={{marginLeft:'8px'}}>{c.vehicleName}</strong>
-                  </div>
-                  <span style={{fontSize:'0.8rem', color:'var(--text-muted)'}}>{c.buyerName}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </header>
+      h('div', { key: 'det', style: { background: 'var(--bg-card)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border-color)', marginBottom: '16px' } }, [
+        h('h3', { key: 't', style: { fontSize: '1.1rem', marginBottom: '8px' } }, `${currentContract.vehicleName} (${currentContract.vehicleModel})`),
+        h('div', { key: 'info', style: { fontSize: '0.85rem', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: '4px' } }, [
+          h('div', { key: 'b' }, ['👤 ', h('strong', { key: 's' }, 'Comprador / Deudor: '), `${currentContract.buyerName} (Doc: ${currentContract.buyerDocument})`]),
+          h('div', { key: 'v' }, ['🏢 ', h('strong', { key: 's' }, 'Vendedor / Dueño: '), currentContract.sellerName]),
+          h('div', { key: 'p' }, ['📅 ', h('strong', { key: 's' }, 'Plazo: '), `${currentContract.totalWeeks} Semanas (~14 meses) | 💰 Abono sugerido: $${currentContract.weeklyRate}/sem`])
+        ]),
+        h('div', { key: 'acts', className: 'vehicle-action-buttons' }, [
+          h('button', { key: 'b1', className: 'btn btn-success', onClick: () => setSelectedWeek(currentWeeks.find(w => w.status === 'PENDIENTE') || currentWeeks[0]) }, '➕ Registrar Abono'),
+          h('button', { key: 'b2', className: 'btn btn-primary', onClick: () => setShowPauseModal(true) }, '🔵 Marcar Pausa'),
+          h('button', { key: 'b3', className: 'btn btn-warning', onClick: () => handleArchiveContract(currentContract.id) }, '📦 Archivar / Liquidado'),
+          h('button', { key: 'b4', className: 'btn btn-danger', onClick: () => setShowDeleteModal(true) }, '🗑️ Borrar')
+        ])
+      ]),
 
-      {/* PESTAÑA 1: FINANCIAMIENTOS ACTIVOS */}
-      {activeTab === 'financiamientos' && currentContract && (
-        <section>
-          <div style={{display:'flex', gap:'8px', overflowX:'auto', paddingBottom:'10px', marginBottom:'16px'}}>
-            {db.contracts.filter(c => c.status === 'ACTIVE').map(c => (
-              <button 
-                key={c.id}
-                onClick={() => setSelectedContractId(c.id)}
-                style={{
-                  background: c.id === selectedContractId ? '#2563eb' : 'var(--bg-card)',
-                  color: c.id === selectedContractId ? '#ffffff' : 'var(--text-muted)',
-                  border: '1px solid var(--border-color)',
-                  padding: '8px 14px',
-                  borderRadius: '20px',
-                  fontWeight: '600',
-                  fontSize: '0.85rem',
-                  whiteSpace: 'nowrap',
-                  cursor: 'pointer'
-                }}
-              >
-                🚘 {c.plate} - {c.vehicleName}
-              </button>
-            ))}
-          </div>
+      h('h3', { key: 'wk-t', style: { marginBottom: '12px' } }, 'Calendario de Semanas por Estado'),
+      h('div', { key: 'wk-list', className: 'weeks-cards-mobile' }, 
+        currentWeeks.map(w => (
+          h('div', {
+            key: w.id,
+            className: `week-card-item status-${w.status}`,
+            onClick: () => setSelectedWeek(w)
+          }, [
+            h('div', { key: 'l' }, [
+              h('strong', { key: 'n' }, `Semana ${w.weekNumber}`),
+              h('div', { key: 'r', style: { fontSize: '0.8rem', color: 'var(--text-muted)' } }, w.rangeText),
+              w.status === 'PAUSA' ? h('div', { key: 'pr', style: { fontSize: '0.75rem', color: '#60a5fa', marginTop: '2px' } }, `🛠️ ${w.pauseReason}`) : null
+            ]),
+            h('div', { key: 'r', style: { textAlign: 'right' } }, [
+              h('span', { key: 'badge', className: `status-badge-pill badge-${w.status}` }, 
+                w.status === 'PAGADA' ? '🟢 Pagada' : (w.status === 'PENDIENTE' ? '🟡 Pendiente' : (w.status === 'PAUSA' ? '🔵 Pausa / Libre' : '🔴 En Mora'))
+              ),
+              h('div', { key: 'amt', style: { fontWeight: '700', marginTop: '4px' } }, `$${w.status === 'PAGADA' ? w.paidAmount : (w.status === 'PAUSA' ? 0 : w.agreedAmount)} USD`)
+            ])
+          ])
+        ))
+      )
+    ]) : null,
 
-          <div className="progress-card">
-            <div className="progress-header">
-              <span className="plate-pill" style={{fontSize:'1.1rem'}}>{currentContract.plate}</span>
-              <strong style={{color:'#10b981', fontSize:'1.1rem'}}>{progressPercent}% COMPLETADO</strong>
-            </div>
+    // PESTAÑA 2: NUEVO CRÉDITO
+    activeTab === 'nuevo' ? h(NewCreditForm, {
+      key: 'tab2',
+      adminName: userSession.name || OFFICIAL_ADMIN.name,
+      onSave: handleCreateContract,
+      onCancel: () => setActiveTab('financiamientos')
+    }) : null,
 
-            <div className="progress-bar-container">
-              <div className="progress-bar-fill" style={{width: `${progressPercent}%`}}></div>
-            </div>
+    // PESTAÑA 3: ARCHIVADOS
+    activeTab === 'archivados' ? h('section', { key: 'tab3' }, [
+      h('h3', { key: 't', style: { marginBottom: '16px' } }, 'Contratos Archivados / Liquidados (100% Pagados)'),
+      db.contracts.filter(c => c.status === 'ARCHIVED_PAID').length === 0 
+        ? h('p', { key: 'empty', style: { color: 'var(--text-muted)' } }, 'No hay contratos archivados aún.')
+        : h('div', { key: 'list', style: { display: 'flex', flexDirection: 'column', gap: '12px' } }, 
+            db.contracts.filter(c => c.status === 'ARCHIVED_PAID').map(c => (
+              h('div', { key: c.id, style: { background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '16px' } }, [
+                h('div', { key: 'hdr', style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' } }, [
+                  h('span', { key: 'p', className: 'plate-pill' }, c.plate),
+                  h('span', { key: 's', style: { color: '#10b981', fontWeight: 'bold', fontSize: '0.85rem' } }, '100% LIQUIDADO 🟢')
+                ]),
+                h('h4', { key: 'n', style: { marginTop: '8px' } }, c.vehicleName),
+                h('div', { key: 'sub', style: { fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '4px' } }, `Comprador: ${c.buyerName} | Costo Total: $${c.totalVehiclePrice} USD`)
+              ])
+            ))
+          )
+    ]) : null,
 
-            <div className="progress-stats-grid">
-              <div className="progress-stat-box">
-                <div className="progress-stat-label">Costo Total</div>
-                <div className="progress-stat-value" style={{color:'#f8fafc'}}>${currentContract.totalVehiclePrice}</div>
-              </div>
+    // PESTAÑA 4: BALANCE CONTABLE
+    activeTab === 'balance' ? h(FinancialBalanceDashboard, { key: 'tab4', db: db }) : null,
 
-              <div className="progress-stat-box">
-                <div className="progress-stat-label">Total Pagado</div>
-                <div className="progress-stat-value" style={{color:'#10b981'}}>${totalPaid}</div>
-              </div>
+    // MODALES
+    selectedWeek && !showPauseModal ? h(AbonoModal, {
+      key: 'mod-abono',
+      week: selectedWeek,
+      contract: currentContract,
+      onClose: () => setSelectedWeek(null),
+      onSaveAbono: handleSaveAbono
+    }) : null,
 
-              <div className="progress-stat-box">
-                <div className="progress-stat-label">Pendiente</div>
-                <div className="progress-stat-value" style={{color:'#ef4444'}}>${pendingBalance}</div>
-              </div>
-            </div>
-          </div>
+    showPauseModal ? h(PauseModal, {
+      key: 'mod-pause',
+      week: currentWeeks.find(w => w.status === 'PENDIENTE') || currentWeeks[0],
+      onClose: () => setShowPauseModal(false),
+      onSavePausa: handleSavePausa
+    }) : null,
 
-          <div style={{background:'var(--bg-card)', padding:'16px', borderRadius:'12px', border:'1px solid var(--border-color)', marginBottom:'16px'}}>
-            <h3 style={{fontSize:'1.1rem', marginBottom:'8px'}}>{currentContract.vehicleName} ({currentContract.vehicleModel})</h3>
-            <div style={{fontSize:'0.85rem', color:'var(--text-muted)', display:'flex', flexDirection:'column', gap:'4px'}}>
-              <div>👤 <strong>Comprador / Deudor:</strong> {currentContract.buyerName} (Doc: {currentContract.buyerDocument})</div>
-              <div>🏢 <strong>Vendedor / Dueño:</strong> {currentContract.sellerName}</div>
-              <div>📅 <strong>Plazo de Financiamiento:</strong> {currentContract.totalWeeks} Semanas (~14 meses) | 💰 Abono sugerido: ${currentContract.weeklyRate}/sem</div>
-            </div>
+    showReceiptModal && receiptData ? h(ReceiptModal, {
+      key: 'mod-receipt',
+      receipt: receiptData,
+      onClose: () => setShowReceiptModal(false)
+    }) : null,
 
-            <div className="vehicle-action-buttons">
-              <button className="btn btn-success" onClick={() => setSelectedWeek(currentWeeks.find(w => w.status === 'PENDIENTE') || currentWeeks[0])}>
-                ➕ Registrar Abono
-              </button>
-              <button className="btn btn-primary" onClick={() => setShowPauseModal(true)}>
-                🔵 Marcar Pausa
-              </button>
-              <button className="btn btn-warning" onClick={() => handleArchiveContract(currentContract.id)}>
-                📦 Archivar / Liquidado
-              </button>
-              <button className="btn btn-danger" onClick={() => setShowDeleteModal(true)}>
-                🗑️ Borrar
-              </button>
-            </div>
-          </div>
+    showDeleteModal ? h('div', { key: 'mod-del', className: 'modal-overlay' }, [
+      h('div', { className: 'modal-content', style: { maxWidth: '400px' } }, [
+        h('h3', { key: 't' }, 'Confirmar Eliminación'),
+        h('p', { key: 'p', style: { marginTop: '10px', color: 'var(--text-muted)' } }, [
+          '¿Está seguro de que desea borrar permanentemente el contrato del vehículo ', h('strong', { key: 'pl' }, currentContract ? currentContract.plate : ''), '? Esta acción no se puede deshacer.'
+        ]),
+        h('div', { key: 'acts', style: { display: 'flex', gap: '10px', marginTop: '20px' } }, [
+          h('button', { key: 'c', className: 'btn btn-secondary', onClick: () => setShowDeleteModal(false) }, 'Cancelar'),
+          h('button', { key: 'd', className: 'btn btn-danger', onClick: () => handleDeleteContract(currentContract.id) }, 'Eliminar Definitivamente')
+        ])
+      ])
+    ]) : null,
 
-          <h3 style={{marginBottom:'12px'}}>Calendario de Semanas por Estado</h3>
-          
-          <div className="weeks-cards-mobile">
-            {currentWeeks.map(w => (
-              <div 
-                key={w.id} 
-                className={`week-card-item status-${w.status}`}
-                onClick={() => setSelectedWeek(w)}
-              >
-                <div>
-                  <strong>Semana {w.weekNumber}</strong>
-                  <div style={{fontSize:'0.8rem', color:'var(--text-muted)'}}>{w.rangeText}</div>
-                  {w.status === 'PAUSA' && (
-                    <div style={{fontSize:'0.75rem', color:'#60a5fa', marginTop:'2px'}}>
-                      🛠️ {w.pauseReason}
-                    </div>
-                  )}
-                </div>
-
-                <div style={{textAlign:'right'}}>
-                  <span className={`status-badge-pill badge-${w.status}`}>
-                    {w.status === 'PAGADA' && '🟢 Pagada'}
-                    {w.status === 'PENDIENTE' && '🟡 Pendiente'}
-                    {w.status === 'PAUSA' && '🔵 Pausa / Libre'}
-                    {w.status === 'EN_MORA' && '🔴 En Mora'}
-                  </span>
-                  <div style={{fontWeight:'700', marginTop:'4px'}}>
-                    ${w.status === 'PAGADA' ? w.paidAmount : (w.status === 'PAUSA' ? 0 : w.agreedAmount)} USD
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* PESTAÑA 2: NUEVO CRÉDITO */}
-      {activeTab === 'nuevo' && (
-        <NewCreditForm 
-          adminName={userSession.name || OFFICIAL_ADMIN.name}
-          onSave={handleCreateContract}
-          onCancel={() => setActiveTab('financiamientos')}
-        />
-      )}
-
-      {/* PESTAÑA 3: ARCHIVADOS */}
-      {activeTab === 'archivados' && (
-        <section>
-          <h3 style={{marginBottom:'16px'}}>Contratos Archivados / Liquidados (100% Pagados)</h3>
-          {db.contracts.filter(c => c.status === 'ARCHIVED_PAID').length === 0 ? (
-            <p style={{color:'var(--text-muted)'}}>No hay contratos archivados aún.</p>
-          ) : (
-            <div style={{display:'flex', flexDirection:'column', gap:'12px'}}>
-              {db.contracts.filter(c => c.status === 'ARCHIVED_PAID').map(c => (
-                <div key={c.id} style={{background:'var(--bg-card)', border:'1px solid var(--border-color)', borderRadius:'12px', padding:'16px'}}>
-                  <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-                    <span className="plate-pill">{c.plate}</span>
-                    <span style={{color:'#10b981', fontWeight:'bold', fontSize:'0.85rem'}}>100% LIQUIDADO 🟢</span>
-                  </div>
-                  <h4 style={{marginTop:'8px'}}>{c.vehicleName}</h4>
-                  <div style={{fontSize:'0.85rem', color:'var(--text-muted)', marginTop:'4px'}}>
-                    Comprador: {c.buyerName} | Costo Total: ${c.totalVehiclePrice} USD
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-      )}
-
-      {/* PESTAÑA 4: BALANCE CONTABLE */}
-      {activeTab === 'balance' && (
-        <FinancialBalanceDashboard db={db} />
-      )}
-
-      {/* MODAL DE ABONO (EDITABLE) */}
-      {selectedWeek && !showPauseModal && (
-        <AbonoModal 
-          week={selectedWeek}
-          contract={currentContract}
-          onClose={() => setSelectedWeek(null)}
-          onSaveAbono={handleSaveAbono}
-        />
-      )}
-
-      {/* MODAL DE PAUSA */}
-      {showPauseModal && (
-        <PauseModal 
-          week={currentWeeks.find(w => w.status === 'PENDIENTE') || currentWeeks[0]}
-          onClose={() => setShowPauseModal(false)}
-          onSavePausa={handleSavePausa}
-        />
-      )}
-
-      {/* MODAL COMPROBANTE PDF */}
-      {showReceiptModal && receiptData && (
-        <ReceiptModal 
-          receipt={receiptData}
-          onClose={() => setShowReceiptModal(false)}
-        />
-      )}
-
-      {/* MODAL BORRAR CONTRATO */}
-      {showDeleteModal && (
-        <div className="modal-overlay">
-          <div className="modal-content" style={{maxWidth:'400px'}}>
-            <h3>Confirmar Eliminación</h3>
-            <p style={{marginTop:'10px', color:'var(--text-muted)'}}>
-              ¿Está seguro de que desea borrar permanentemente el contrato del vehículo <strong>{currentContract.plate}</strong>? Esta acción no se puede deshacer.
-            </p>
-            <div style={{display:'flex', gap:'10px', marginTop:'20px'}}>
-              <button className="btn btn-secondary" onClick={() => setShowDeleteModal(false)}>Cancelar</button>
-              <button className="btn btn-danger" onClick={() => handleDeleteContract(currentContract.id)}>Eliminar Definitivamente</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* BARRA DE NAVEGACIÓN INFERIOR MÓVIL */}
-      <nav className="bottom-nav">
-        <button className={`nav-item ${activeTab === 'financiamientos' ? 'active' : ''}`} onClick={() => setActiveTab('financiamientos')}>
-          <i data-lucide="car"></i>
-          <span>Créditos</span>
-        </button>
-
-        <button className={`nav-item ${activeTab === 'nuevo' ? 'active' : ''}`} onClick={() => setActiveTab('nuevo')}>
-          <i data-lucide="plus-circle"></i>
-          <span>Nuevo</span>
-        </button>
-
-        <button className={`nav-item ${activeTab === 'archivados' ? 'active' : ''}`} onClick={() => setActiveTab('archivados')}>
-          <i data-lucide="archive"></i>
-          <span>Archivados</span>
-        </button>
-
-        <button className={`nav-item ${activeTab === 'balance' ? 'active' : ''}`} onClick={() => setActiveTab('balance')}>
-          <i data-lucide="bar-chart-2"></i>
-          <span>Balance</span>
-        </button>
-      </nav>
-    </div>
-  );
+    // BARRA DE NAVEGACIÓN INFERIOR MÓVIL
+    h('nav', { key: 'bottom-nav', className: 'bottom-nav' }, [
+      h('button', { key: 'n1', className: `nav-item ${activeTab === 'financiamientos' ? 'active' : ''}`, onClick: () => setActiveTab('financiamientos') }, [
+        h('i', { key: 'i', 'data-lucide': 'car' }),
+        h('span', { key: 's' }, 'Créditos')
+      ]),
+      h('button', { key: 'n2', className: `nav-item ${activeTab === 'nuevo' ? 'active' : ''}`, onClick: () => setActiveTab('nuevo') }, [
+        h('i', { key: 'i', 'data-lucide': 'plus-circle' }),
+        h('span', { key: 's' }, 'Nuevo')
+      ]),
+      h('button', { key: 'n3', className: `nav-item ${activeTab === 'archivados' ? 'active' : ''}`, onClick: () => setActiveTab('archivados') }, [
+        h('i', { key: 'i', 'data-lucide': 'archive' }),
+        h('span', { key: 's' }, 'Archivados')
+      ]),
+      h('button', { key: 'n4', className: `nav-item ${activeTab === 'balance' ? 'active' : ''}`, onClick: () => setActiveTab('balance') }, [
+        h('i', { key: 'i', 'data-lucide': 'bar-chart-2' }),
+        h('span', { key: 's' }, 'Balance')
+      ])
+    ])
+  ]);
 }
 
-// Renderizado en DOM
+// RENDERIZADO PRINCIPAL NATIVO
 const rootElement = document.getElementById('root');
 if (rootElement) {
   const root = ReactDOM.createRoot(rootElement);
-  root.render(<App />);
+  root.render(React.createElement(App));
 }
