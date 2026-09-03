@@ -16,7 +16,7 @@ const firebaseConfig = {
 
 const STORAGE_KEY_DB = 'vehicle_financing_credit_db_v1';
 
-export const cloudDbService = {
+const cloudDbService = {
   dbInstance: null,
   rtdbInstance: null,
   isCloudActive: false,
@@ -28,7 +28,6 @@ export const cloudDbService = {
           window.firebase.initializeApp(firebaseConfig);
         }
         
-        // Soporte dual: Firebase Realtime Database & Firestore Database
         if (window.firebase.database) {
           this.rtdbInstance = window.firebase.database();
         }
@@ -47,11 +46,9 @@ export const cloudDbService = {
     }
   },
 
-  // Escuchar actualizaciones en tiempo real desde la nube
   subscribeToCloudChanges(onDataUpdate) {
     this.init();
 
-    // 1. Sincronización mediante Firebase Realtime Database
     if (this.rtdbInstance) {
       const dbRef = this.rtdbInstance.ref('financing_app_data');
       dbRef.on('value', (snapshot) => {
@@ -64,7 +61,6 @@ export const cloudDbService = {
       return;
     }
 
-    // 2. Sincronización mediante Firestore
     if (this.dbInstance) {
       return this.dbInstance.collection("financing_system").doc("app_data")
         .onSnapshot((doc) => {
@@ -77,12 +73,9 @@ export const cloudDbService = {
     }
   },
 
-  // Guardar datos en la nube y localmente
   async syncData(data) {
-    // Respaldo local
     localStorage.setItem(STORAGE_KEY_DB, JSON.stringify(data));
 
-    // Guardar en la Nube
     if (this.isCloudActive) {
       try {
         if (this.rtdbInstance) {
@@ -98,3 +91,6 @@ export const cloudDbService = {
     }
   }
 };
+
+// Asignar al objeto global window para disponibilidad inmediata en el navegador
+window.cloudDbService = cloudDbService;

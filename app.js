@@ -3,13 +3,7 @@
    React 18 + Firebase Cloud Sync + Admin Andres Rebolledo
    ========================================================================== */
 
-import { cloudDbService } from './cloudDbService.js';
-
 const { useState, useEffect } = React;
-
-// Claves de Almacenamiento
-const STORAGE_KEY_DB = 'vehicle_financing_credit_db_v1';
-const STORAGE_KEY_AUTH = 'vehicle_financing_auth_session_v2';
 
 // CREDENCIALES OFICIALES DE ADMINISTRADOR
 const OFFICIAL_ADMIN = {
@@ -19,6 +13,10 @@ const OFFICIAL_ADMIN = {
   password: 'Andres2026!',
   role: 'Administrador Principal'
 };
+
+// Claves de Almacenamiento
+const STORAGE_KEY_DB = 'vehicle_financing_credit_db_v1';
+const STORAGE_KEY_AUTH = 'vehicle_financing_auth_session_v2';
 
 // Datos de Demostración Iniciales (Semillas)
 const INITIAL_SEED = {
@@ -127,7 +125,7 @@ function createWeeksForContract(contractId, totalWeeks = 60, weeklyRate = 200) {
   return weeks;
 }
 
-// Cargar Base de Datos con Respaldo Nube
+// Cargar Base de Datos
 function loadDB() {
   const saved = localStorage.getItem(STORAGE_KEY_DB);
   if (saved) {
@@ -183,18 +181,24 @@ function App() {
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [receiptData, setReceiptData] = useState(null);
 
-  // Sincronización en la Nube con Firebase Firestore
+  // Sincronización en la Nube con Firebase Firestore / Realtime DB
   useEffect(() => {
-    cloudDbService.subscribeToCloudChanges((cloudData) => {
-      if (cloudData && cloudData.contracts) {
-        setDb(cloudData);
-      }
-    });
+    if (window.cloudDbService) {
+      window.cloudDbService.subscribeToCloudChanges((cloudData) => {
+        if (cloudData && cloudData.contracts) {
+          setDb(cloudData);
+        }
+      });
+    }
   }, []);
 
   const updateDatabase = (newDb) => {
     setDb(newDb);
-    cloudDbService.syncData(newDb);
+    if (window.cloudDbService) {
+      window.cloudDbService.syncData(newDb);
+    } else {
+      localStorage.setItem(STORAGE_KEY_DB, JSON.stringify(newDb));
+    }
   };
 
   useEffect(() => {
@@ -735,7 +739,6 @@ function LoginScreen({ onLoginSuccess }) {
           </button>
         </form>
 
-        {/* TARJETA DE RECOMENDACIÓN DE ACCESO */}
         <div style={{
           marginTop: '20px',
           padding: '14px',
